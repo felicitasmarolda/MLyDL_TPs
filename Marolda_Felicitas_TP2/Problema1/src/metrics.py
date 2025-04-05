@@ -25,8 +25,11 @@ def recall(y_true, y_pred):
     return TP / (TP + FN) if (TP + FN) > 0 else 0
 
 def f_score(y_true, y_pred, beta=1):
+    print("netro")
     p = precision(y_true, y_pred)
+    print(f"Precision: {p}")
     r = recall(y_true, y_pred)
+    print(f"Recall: {r}")
     return (1 + beta**2) * (p * r) / (beta**2 * p + r) if (beta**2 * p + r) > 0 else 0
 
 def curve_precision_recall(y_true, y_scores):

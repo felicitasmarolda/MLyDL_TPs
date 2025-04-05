@@ -20,7 +20,7 @@ class KNNClassifier:
         return np.array(predictions)
     
 class Logistic_Regression:
-    def __init__(self, X, y, features, L2 = 0, threshold=0.01, max_iterations=1000, fit = True):
+    def __init__(self, X, y, features, L2 = 0, threshold=0.5, max_iterations=1000, fit = True):
         """
         threshold: threshold value to classify as class 1 (default 0.5)
         max_iter: max number of iterations for gradient descent
@@ -43,7 +43,7 @@ class Logistic_Regression:
     
     def _sigmoid(self, z):
         z = np.array(z)  # Ensure z is a NumPy array
-        print(f"Type of z: {type(z)}, Value of z: {z}")
+        # print(f"Type of z: {type(z)}, Value of z: {z}")
         return 1 / (1 + np.exp(-z))
 
 
@@ -51,21 +51,26 @@ class Logistic_Regression:
         return -np.mean(y * np.log(y_pred) + (1 - y) * np.log(1 - y_pred))
     
     def gradient(self, y_pred):
-        return np.dot(self.X.T, (y_pred - self.y)) / self.y.size + self.L2 * self.coef
+        y_pred = y_pred.reshape(-1)  # Asegura que y_pred sea un vector plano
+        self.y = self.y.reshape(-1)  # Asegura que self.y sea un vector plano
+        # print(self.y.shape)
+        # print((y_pred - self.y).shape)
+        return (self.X.T @ (y_pred - self.y)) / self.y.size + self.L2 * self.coef
         # return np.dot(self.X.T, (y_pred - self.y)) / self.y.size + self.learning_rate * self.coef
         
-    
+
     def gradient_descent(self):
         for _ in range(self.max_iter):
-            print("X: ", self.X)
-            print("Coef: ", self.coef)
+            # print("X: ", self.X)
+            # print("Coef: ", self.coef)
             z = np.dot(self.X, self.coef)
             y_hat = self._sigmoid(z)
+            # print("Y_hat: ", y_hat.shape)
             gradient = self.gradient(y_hat)
             self.coef -= self.learning_rate * gradient
             self.coef_trace.append(self.coef.copy())
+        print(self.coef)
         
-    
     def predict(self, X):
         X = np.column_stack((np.ones(X.shape[0]), X))
         y_pred = self._sigmoid(np.dot(X, self.coef))

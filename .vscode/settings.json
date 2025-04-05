@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./Marolda_Felicitas_TP2/Problema1/src"
+    ]
+}
