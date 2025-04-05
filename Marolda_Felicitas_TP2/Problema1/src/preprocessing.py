@@ -5,14 +5,23 @@ def prepare_for_knn_cell_type(df):
     """Descompone un DataFrame en X, y y las features y saca la columna de prediccion"""
     df = df.copy()
 
-    df = df.dropna()
+    # df = df.dropna() 
+    cols_to_dropna = ['CellType']
+    df = df.dropna(subset=cols_to_dropna)
 
     df['GeneticMutationBinary'] = (df['GeneticMutation'] == 'Presnt').astype(int)
     df['CellTypeEncoded'], uniques = pd.factorize(df['CellType'])
     print(uniques)
     # convertimos a array y dividimos en X, y y las features
 
+    # guardamos la columna 'Diagnosis' en una lista
+    diagnosis = df['Diagnosis'].values
+
     df = df.drop(columns=['CellType', 'GeneticMutation', 'Diagnosis'], errors='ignore')
+    cols_to_fill_mean = df.columns.difference(['A', 'B'])
+    df[cols_to_fill_mean] = df[cols_to_fill_mean].fillna(df[cols_to_fill_mean].mean())  
+    features_names = list(df.columns)
+
 
     X, y, features = df_breakDown(df, y='CellTypeEncoded')
     y = np.array(y).ravel()
@@ -25,40 +34,33 @@ def prepare_for_knn_cell_type(df):
     X_train = []
     X_predict = []
     for i in range(len(y)):
-        if y[i] == 2:
+        if y[i] == 1:
             y_predict.append(y[i])
             X_predict.append(X[i])
         else:
             y_train.append(y[i])
             X_train.append(X[i])
 
-    return X_train, y_train, features, X_predict, y_predict
+    return X_train, y_train, features, X_predict, y_predict, diagnosis, features_names
 
-def reunite_cell_type(X_prev, y_prev, X_new, y_new, df):
+# ESTA MAL EL AGREGADO DE DIAGNOSIS
+
+def reunite_cell_type(X_prev, y_prev, X_new, y_new, diagnosis, features_names):
     """Reune los datos pero ahora con cell type decodificado, le vuelve a sumar la 
     columna de diagnósticos.
     """
-    df = df.copy()
-    # print("X_prev", X_prev)
-    # print("y_prev", y_prev)
-    # print("X_new", X_new)
-    # print("y_new", y_new)
-    # print("df", df)
-
-    # unimos los datos
     X = np.concatenate((X_prev, X_new), axis=0)
     y = np.concatenate((y_prev, y_new), axis=0)
 
-    diagnosis = df['Diagnosis'].values
-
-    new_df = pd.DataFrame(X, columns=df.columns[:-1])
+    new_df = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])])
+    new_df['CellTypeEncoded'] = y
     new_df['Diagnosis'] = diagnosis
-    new_df['CellTypeBinary'] = y
 
-    print("new_df", new_df)
+    # le ponemos nombres a las columnas
+    new_df.columns = features_names + ['Diagnosis']
+
 
     return new_df
-
 
     
 def fix_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -82,10 +84,6 @@ def fix_df(df: pd.DataFrame) -> pd.DataFrame:
 
     return df    
 
-
-
-
-    return df
 
 def df_breakDown(df, y='y'):
     """Descompone un DataFrame en X, y y las features"""
