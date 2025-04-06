@@ -115,39 +115,40 @@ def cross_validation(X_df_train, possible_L2, thresholds, folds: int = 5, valida
     fscore_path = []
 
     for L2 in possible_L2:
+        best_fscore_for_L2 = 0
         for threshold in thresholds:
             fscores = []
 
             for fold in range(folds):
                 # Split the data into training and validation sets
                 X_train_fold, X_val_fold = split_data(X_df_train, validation_size=validation_size)
-                print("Fold:", fold, "L2:", L2, "Threshold:", threshold)
+                # print("Fold:", fold, "L2:", L2, "Threshold:", threshold)
                 X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
                 X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
                 X_train = min_max_scaling(X_train, X_train.min(), X_train.max())
                 X_val = min_max_scaling(X_val, X_train.min(), X_train.max())
-                model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
+                model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=threshold)
                 
                 predictions = model.predict(X_val)
 
 
                 fscore = met.f_score(y_val, predictions)
-                print("Fscore:", fscore)
+                # print("Fscore:", fscore)
                 fscores.append(fscore)
 
             avg_fscore = np.mean(fscores)
-            fscore_path.append((L2, threshold, avg_fscore))
+
+            if avg_fscore > best_fscore_for_L2:
+                best_fscore_for_L2 = avg_fscore
 
             if avg_fscore > best_fscore:
                 best_fscore = avg_fscore
                 best_L2 = L2
                 best_threshold = threshold
-    
-    graph_L2_fscore(possible_L2, fscore_path)
+        fscore_path.append(best_fscore_for_L2)
+
+    met.graph_L2_fscore(possible_L2, fscore_path)
     return best_L2, best_threshold
 
-def graph_L2_fscore(L2_list, fscores):
-    """Graficamos el valor de L2 contra su fscore correspondiente"""
-    plt.figure()
 

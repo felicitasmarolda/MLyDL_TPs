@@ -41,6 +41,19 @@ class Logistic_Regression:
     def fit(self):
         self.gradient_descent()
     
+    def coef_names(self):
+        """Imprime los coeficientes con los nombres de sus respectivas variables de forma prolija en 
+        una tabla."""
+        table = "\n" + "{:<20}".format("| Variable")
+        for feature in self.features:
+            table += " | {:>15}".format(feature)
+        table += "|"
+        table += "\n" + "{:<20}".format("| Coeficiente")
+        for coef in self.coef:
+            table += " | {:>15.6f}".format(coef[0])
+        table += "|"
+        return table
+    
     def _sigmoid(self, z):
         z = np.array(z)  # Ensure z is a NumPy array
         # print(f"Type of z: {type(z)}, Value of z: {z}")
@@ -69,7 +82,7 @@ class Logistic_Regression:
             gradient = self.gradient(y_hat)
             self.coef -= self.learning_rate * gradient
             self.coef_trace.append(self.coef.copy())
-        print(self.coef)
+        # print(self.coef)
         
     def predict(self, X):
         X = np.column_stack((np.ones(X.shape[0]), X))

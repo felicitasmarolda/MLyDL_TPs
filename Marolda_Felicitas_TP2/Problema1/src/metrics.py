@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 def confusion_matrix(y_true, y_pred):
     """
@@ -25,11 +26,10 @@ def recall(y_true, y_pred):
     return TP / (TP + FN) if (TP + FN) > 0 else 0
 
 def f_score(y_true, y_pred, beta=1):
-    print("netro")
     p = precision(y_true, y_pred)
-    print(f"Precision: {p}")
+    # print(f"Precision: {p}")
     r = recall(y_true, y_pred)
-    print(f"Recall: {r}")
+    # print(f"Recall: {r}")
     return (1 + beta**2) * (p * r) / (beta**2 * p + r) if (beta**2 * p + r) > 0 else 0
 
 def curve_precision_recall(y_true, y_scores):
@@ -63,6 +63,21 @@ def AUC_ROC(y_true, y_scores):
     return auc
 
 def AUC_PR(y_true, y_scores):
+
     precisions, recalls = curve_precision_recall(y_true, y_scores)
     auc = np.trapz(precisions, recalls)
     return auc
+
+
+def graph_L2_fscore(L2_list, fscores):
+    """Graficamos el valor de L2 contra su fscore correspondiente"""
+    plt.figure()
+    plt.plot(L2_list, fscores, marker='o')
+    plt.xlabel('L2')
+    plt.ylabel('Fscore')
+    plt.title('L2 vs Fscore')
+    plt.xscale('log')
+    plt.grid(True)
+    plt.show()
+    plt.savefig('L2_vs_Fscore.png')
+    plt.close()
