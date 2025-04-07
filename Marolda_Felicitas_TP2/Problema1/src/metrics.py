@@ -19,6 +19,7 @@ def accuracy(y_true, y_pred):
 
 def precision(y_true, y_pred):
     TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
+    print(f"TP: {TP}, TN: {TN}, FP: {FP}, FN: {FN}")
     return TP / (TP + FP) if (TP + FP) > 0 else 0
 
 def recall(y_true, y_pred):
@@ -27,9 +28,9 @@ def recall(y_true, y_pred):
 
 def f_score(y_true, y_pred, beta=1):
     p = precision(y_true, y_pred)
-    # print(f"Precision: {p}")
+    print(f"Precision: {p}")
     r = recall(y_true, y_pred)
-    # print(f"Recall: {r}")
+    print(f"Recall: {r}")
     return (1 + beta**2) * (p * r) / (beta**2 * p + r) if (beta**2 * p + r) > 0 else 0
 
 def curve_precision_recall(y_true, y_scores):

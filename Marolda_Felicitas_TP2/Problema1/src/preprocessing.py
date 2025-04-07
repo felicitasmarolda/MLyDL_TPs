@@ -15,58 +15,65 @@ def prepare_df(df_):
      """
     df = df_.copy()
 
+    df = df.replace('???', np.nan)
+
     df['GeneticMutationBinary'] = (df['GeneticMutation'] == 'Presnt').astype(int)
-    df = df.drop(columns=['GeneticMutation'], errors='ignore')
+    df['CellTypeBinary'] = (df['CellType'] == 'Epthlial').astype(int)
+    df = df.drop(columns=['GeneticMutation', 'CellTypeBinary' ], errors='ignore')
 
-    df['CellTypeEncoded'], uniques = pd.factorize(df['CellType'])
-    print(uniques)
-    df = df.drop(columns=['CellType'], errors='ignore')
-
-    # convertimos a array y dividimos en X, y y las features
-    # guardamos la columna 'Diagnosis' en una lista
-    diagnosis = df['Diagnosis'].values
-    df = df.drop(columns=['Diagnosis'], errors='ignore')    # ahora el dataframe no tiene la columna de diagnosis
-
-    df = df.dropna(subset=["CellTypeEncoded"])
-    columnas_a_rellenar = df.columns.difference(["CellTypeEncoded"])
-    df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].mean())
-
-    features_names = list(df.columns)
-    print("Features names:", features_names)
-
-    # ahora ya no hay nans
-    X, y, features = df_breakDown(df, y='CellTypeEncoded')
-    y = np.array(y).ravel()
-    X_with = []
-    cellType_with = []
-    X_without = []
-    cellType_without = []
-    diagnosis_with = []
-    diagnosis_without = []      # agregamos los diagnosis para cuando hagamos el concatenate no se pierda el orde
-
-    for i in range(len(y)):
-        if y[i] == 1:
-            cellType_with.append(y[i])
-            X_with.append(X[i])
-            diagnosis_with.append(diagnosis[i])
-        else:
-            cellType_without.append(y[i])
-            X_without.append(X[i])
-            diagnosis_without.append(diagnosis[i])
     
-    model_knn = mod.KNNClassifier(X_with, cellType_with, features, k=3)
-    predictions_cell_type = model_knn.predict(X_without)
+    # df['CellTypeEncoded'], uniques = pd.factorize(df['CellType'])
+    # print(uniques)
+    # df = df.drop(columns=['CellType'], errors='ignore')
 
-    # reunimos todo
-    X = np.concatenate((X_with, X_without), axis=0)
-    cellType = np.concatenate((cellType_with, predictions_cell_type), axis=0)
-    diagnosis = np.concatenate((diagnosis_with, diagnosis_without), axis=0)
+    # --> DESCOMENTAR LO DE ABAJO PARA KNN '???'
+    # # convertimos a array y dividimos en X, y y las features
+    # # guardamos la columna 'Diagnosis' en una lista
+    # diagnosis = df['Diagnosis'].values
+    # df = df.drop(columns=['Diagnosis'], errors='ignore')    # ahora el dataframe no tiene la columna de diagnosis
+
+    # df = df.dropna(subset=["CellTypeEncoded"])
+    # columnas_a_rellenar = df.columns.difference(["CellTypeEncoded"])
+    # df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].mean())
+
+    # features_names = list(df.columns)
+    # print("Features names:", features_names)
+
+    # # ahora ya no hay nans
+    # X, y, features = df_breakDown(df, y='CellTypeEncoded')
+    # y = np.array(y).ravel()
+    # X_with = []
+    # cellType_with = []
+    # X_without = []
+    # cellType_without = []
+    # diagnosis_with = []
+    # diagnosis_without = []      # agregamos los diagnosis para cuando hagamos el concatenate no se pierda el orde
+
+    # for i in range(len(y)):
+    #     if y[i] == 1:
+    #         cellType_with.append(y[i])
+    #         X_with.append(X[i])
+    #         diagnosis_with.append(diagnosis[i])
+    #     else:
+    #         cellType_without.append(y[i])
+    #         X_without.append(X[i])
+    #         diagnosis_without.append(diagnosis[i])
     
-    new_df = pd.DataFrame(X, columns=features)
-    new_df['CellTypeEncoded'] = cellType
-    new_df['Diagnosis'] = diagnosis
+    # model_knn = mod.KNNClassifier(X_with, cellType_with, features, k=3)
+    # predictions_cell_type = model_knn.predict(X_without)
 
+    # # reunimos todo
+    # X = np.concatenate((X_with, X_without), axis=0)
+    # cellType = np.concatenate((cellType_with, predictions_cell_type), axis=0)
+    # diagnosis = np.concatenate((diagnosis_with, diagnosis_without), axis=0)
+    
+    # new_df = pd.DataFrame(X, columns=features)
+    # new_df['CellTypeEncoded'] = cellType
+    # new_df['Diagnosis'] = diagnosis
+
+    return df
     return new_df
+
 
 def knn_for_nans(X, k = 4):
     """Recibimos un X df y devolvemos el mismo df pero donde hay nan hacemos knn y 
@@ -122,19 +129,19 @@ def cross_validation(X_df_train, possible_L2, thresholds, folds: int = 5, valida
             for fold in range(folds):
                 # Split the data into training and validation sets
                 X_train_fold, X_val_fold = split_data(X_df_train, validation_size=validation_size)
-                # print("Fold:", fold, "L2:", L2, "Threshold:", threshold)
+                print("Fold:", fold, "L2:", L2, "Threshold:", threshold)
                 X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
                 X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
                 X_train = min_max_scaling(X_train, X_train.min(), X_train.max())
                 X_val = min_max_scaling(X_val, X_train.min(), X_train.max())
-                model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=threshold)
+                model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
                 
                 predictions = model.predict(X_val)
 
 
                 fscore = met.f_score(y_val, predictions)
-                # print("Fscore:", fscore)
+                print("Fscore:", fscore)
                 fscores.append(fscore)
 
             avg_fscore = np.mean(fscores)
