@@ -83,10 +83,15 @@ class Logistic_Regression:
             self.coef -= self.learning_rate * gradient
             self.coef_trace.append(self.coef.copy())
         # print(self.coef)
-        
-    def predict(self, X):
+    
+    def predict_proba(self, X):
         X = np.column_stack((np.ones(X.shape[0]), X))
         y_pred = self._sigmoid(np.dot(X, self.coef))
         # print(f"Predictions prob: {y_pred}")
-        return (y_pred >= self.threshold).astype(int)
+        return y_pred
+    
+    def predict(self, X):
+        y_pred_proba = self.predict_proba(X)
+        # print(f"Predictions: {y_pred_proba}")
+        return (y_pred_proba >= self.threshold).astype(int)
     

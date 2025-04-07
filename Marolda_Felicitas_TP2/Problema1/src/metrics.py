@@ -49,7 +49,7 @@ def f_score(y_true, y_pred, beta=1):
     return (1 + beta**2) * (p * r) / (beta**2 * p + r) if (beta**2 * p + r) > 0 else 0
 
 def curve_precision_recall(y_true, y_scores):
-    thresholds = np.arange(0, 1.1, 0.1)
+    thresholds = np.sort(np.unique(y_scores))[::-1]
     precisions = []
     recalls = []
 
@@ -64,7 +64,7 @@ def draw_precision_recall_curve(y_true, y_scores):
     precisions, recalls = curve_precision_recall(y_true, y_scores)
 
     plt.figure(figsize=(8, 6))
-    plt.plot(recalls, precisions, marker='o')
+    plt.plot(recalls, precisions)
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.title('Precision-Recall Curve')
@@ -74,6 +74,7 @@ def draw_precision_recall_curve(y_true, y_scores):
     plt.show()
 
 def curve_ROC(y_true, y_scores):
+    # print(np.unique(y_scores))
     thresholds = np.arange(0, 1.01, 0.1)  # mejor usar 1.01 para incluir 1.0 por seguridad
     TPRs = []
     FPRs = []
@@ -117,7 +118,7 @@ def draw_AUC_ROC(y_true, y_scores):
     plt.plot(FPRs, TPRs, marker='o')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('ROC Curve')
+    plt.title('AUC-ROC Curve')
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.grid(True)
@@ -126,11 +127,23 @@ def draw_AUC_ROC(y_true, y_scores):
     
 
 def AUC_PR(y_true, y_scores):
-
     precisions, recalls = curve_precision_recall(y_true, y_scores)
     auc = np.trapz(precisions, recalls)
     return auc
 
+def draw_AUC_PR(y_true, y_scores):
+    precisions, recalls = curve_precision_recall(y_true, y_scores)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(recalls, precisions, marker='o')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('AUC-PR Curve')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.grid(True)
+    plt.fill_between(recalls, precisions, alpha=0.2)
+    plt.show()
 
 def graph_val_fscore(val_list, fscores):
     """Graficamos el valor de L2 contra su fscore correspondiente"""
