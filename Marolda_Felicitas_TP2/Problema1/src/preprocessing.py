@@ -15,26 +15,21 @@ def prepare_df(df_):
      """
     df = df_.copy()
 
-    df = df.replace('???', np.nan)
-
     df['GeneticMutationBinary'] = (df['GeneticMutation'] == 'Presnt').astype(int)
-    df['CellTypeBinary'] = (df['CellType'] == 'Epthlial').astype(int)
-    df = df.drop(columns=['GeneticMutation', 'CellTypeBinary' ], errors='ignore')
+    df = df.drop(columns=['GeneticMutation'], errors='ignore')
 
-    
-    # df['CellTypeEncoded'], uniques = pd.factorize(df['CellType'])
-    # print(uniques)
-    # df = df.drop(columns=['CellType'], errors='ignore')
+    df['CellTypeEncoded'], uniques = pd.factorize(df['CellType'])
+    print(uniques)
+    df = df.drop(columns=['CellType'], errors='ignore')
 
-    # --> DESCOMENTAR LO DE ABAJO PARA KNN '???'
-    # # convertimos a array y dividimos en X, y y las features
-    # # guardamos la columna 'Diagnosis' en una lista
+    # convertimos a array y dividimos en X, y y las features
+    # guardamos la columna 'Diagnosis' en una lista
     # diagnosis = df['Diagnosis'].values
     # df = df.drop(columns=['Diagnosis'], errors='ignore')    # ahora el dataframe no tiene la columna de diagnosis
 
-    # df = df.dropna(subset=["CellTypeEncoded"])
-    # columnas_a_rellenar = df.columns.difference(["CellTypeEncoded"])
-    # df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].mean())
+    df = df.dropna(subset=["CellTypeEncoded"])
+    columnas_a_rellenar = df.columns.difference(["CellTypeEncoded"])
+    df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].mean())
 
     # features_names = list(df.columns)
     # print("Features names:", features_names)
@@ -70,10 +65,9 @@ def prepare_df(df_):
     # new_df = pd.DataFrame(X, columns=features)
     # new_df['CellTypeEncoded'] = cellType
     # new_df['Diagnosis'] = diagnosis
-
+    print(df.describe())
     return df
     return new_df
-
 
 def knn_for_nans(X, k = 4):
     """Recibimos un X df y devolvemos el mismo df pero donde hay nan hacemos knn y 
@@ -133,12 +127,17 @@ def cross_validation(X_df_train, possible_L2, thresholds, folds: int = 5, valida
                 X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
                 X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
+                # print("Distribución de Diagnosis en train:")
+                # print(X_train_fold['Diagnosis'].value_counts())
+
                 X_train = min_max_scaling(X_train, X_train.min(), X_train.max())
                 X_val = min_max_scaling(X_val, X_train.min(), X_train.max())
                 model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
                 
                 predictions = model.predict(X_val)
 
+                # print("Predicciones únicas:", np.unique(predictions, return_counts=True))
+                # print("Etiquetas verdaderas únicas:", np.unique(y_val, return_counts=True))
 
                 fscore = met.f_score(y_val, predictions)
                 print("Fscore:", fscore)

@@ -87,5 +87,6 @@ class Logistic_Regression:
     def predict(self, X):
         X = np.column_stack((np.ones(X.shape[0]), X))
         y_pred = self._sigmoid(np.dot(X, self.coef))
+        # print(f"Predictions prob: {y_pred}")
         return (y_pred >= self.threshold).astype(int)
     

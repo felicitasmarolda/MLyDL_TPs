@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 def confusion_matrix(y_true, y_pred):
     """
-    Compute the confusion matrix.
+    Compute the confusion matrix and display it.
     """
     TP = np.sum((y_true == 1) & (y_pred == 1))
     TN = np.sum((y_true == 0) & (y_pred == 0))
@@ -12,6 +13,22 @@ def confusion_matrix(y_true, y_pred):
     FN = np.sum((y_true == 1) & (y_pred == 0))
 
     return TP, TN, FP, FN
+
+def draw_confusion_matrix(TP, TN, FP, FN):
+    matrix = np.array([[TN, FP],
+                       [FN, TP]])
+
+    # Plot
+    plt.figure(figsize=(5, 4))
+    sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues",
+                xticklabels=['Predicted Negative', 'Predicted Positive'],
+                yticklabels=['Actual Negative', 'Actual Positive'])
+    plt.title("Confusion Matrix")
+    plt.xlabel("Predicted Label")
+    plt.ylabel("Actual Label")
+    plt.tight_layout()
+    plt.show()
+
 
 def accuracy(y_true, y_pred):
     TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
@@ -45,6 +62,19 @@ def curve_precision_recall(y_true, y_scores):
 
     return precisions, recalls
 
+def draw_precision_recall_curve(y_true, y_scores):
+    precisions, recalls = curve_precision_recall(y_true, y_scores)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(recalls, precisions, marker='o')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.grid(True)
+    plt.show()
+
 def curve_ROC(y_true, y_scores):
     thresholds = np.arange(0, 1.1, 0.1)
     TPRs = []  # True Positive Rates
@@ -58,10 +88,38 @@ def curve_ROC(y_true, y_scores):
 
     return FPRs, TPRs
 
+def draw_ROC_curve(y_true, y_scores):
+    FPRs, TPRs = curve_ROC(y_true, y_scores)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(FPRs, TPRs, marker='o')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.grid(True)
+    plt.show()
+
 def AUC_ROC(y_true, y_scores):
     FPRs, TPRs = curve_ROC(y_true, y_scores)
     auc = np.trapz(TPRs, FPRs)
     return auc
+
+def draw_AUC_ROC(y_true, y_scores):
+    FPRs, TPRs = curve_ROC(y_true, y_scores)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(FPRs, TPRs, marker='o')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.grid(True)
+    plt.fill_between(FPRs, TPRs, alpha=0.2)
+    plt.show()
+    
 
 def AUC_PR(y_true, y_scores):
 
@@ -82,3 +140,4 @@ def graph_L2_fscore(L2_list, fscores):
     plt.show()
     plt.savefig('L2_vs_Fscore.png')
     plt.close()
+    
