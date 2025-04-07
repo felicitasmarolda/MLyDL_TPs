@@ -103,7 +103,7 @@ def normalization(X: pd.DataFrame, mu, sigma) -> pd.DataFrame:
     return X
 
 
-def cross_validation(X_df_train, possible_L2, thresholds, folds: int = 5, validation_size = 0.2):
+def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size = 0.2):
     """X: data original
     y: labels
     folds: cantidad de folds para cross validation
@@ -111,50 +111,105 @@ def cross_validation(X_df_train, possible_L2, thresholds, folds: int = 5, valida
     thresholds: lista de thresholds para probar
     Prueba diferentes valores de L2 y del threshold para encontrar el óptimo de L2 usando fscore"""
 
-    fold_size = len(X_df_train) // folds
+    best_fscore = -1
     best_L2 = None
-    best_threshold = None
-    best_fscore = 0
-
     fscore_path = []
 
+    df_dev = df_dev.sample(frac=1, random_state=42).reset_index(drop=True)
+    fold_size = len(df_dev) // folds
+
     for L2 in possible_L2:
-        best_fscore_for_L2 = 0
-        for threshold in thresholds:
-            fscores = []
+        # print(f"Testing L2={L2}")
+        fscores = []
+        for fold in range(folds):
 
-            for fold in range(folds):
-                # Split the data into training and validation sets
-                X_train_fold, X_val_fold = split_data(X_df_train, validation_size=validation_size)
-                print("Fold:", fold, "L2:", L2, "Threshold:", threshold)
-                X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
-                X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
+            start = fold * fold_size
+            end = (fold + 1) * fold_size if fold != folds - 1 else len(df_dev)
+            X_val_fold = df_dev.iloc[start:end]
+            X_train_fold = pd.concat([df_dev.iloc[:start], df_dev.iloc[end:]])
 
-                X_train = normalization(X_train, X_train.mean(), X_train.std())
-                X_val = normalization(X_val, X_train.mean(), X_train.std())
-                model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
-                
-                predictions = model.predict(X_val)
+            X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
+            X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
-                # print("Predicciones únicas:", np.unique(predictions, return_counts=True))
-                # print("Etiquetas verdaderas únicas:", np.unique(y_val, return_counts=True))
+            # Normalización con media y std del training
+            X_train = normalization(X_train, X_train.mean(), X_train.std())
+            X_val = normalization(X_val, X_train.mean(), X_train.std())
 
-                fscore = met.f_score(y_val, predictions)
-                print("Fscore:", fscore)
-                fscores.append(fscore)
+            # Entrenar y predecir
+            model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
+            predictions = model.predict(X_val)
 
-            avg_fscore = np.mean(fscores)
+            # Calcular f-score
+            fscore = met.f_score(y_val, predictions)
+            # print("Fscore:", fscore)
+            fscores.append(fscore)
 
-            if avg_fscore > best_fscore_for_L2:
-                best_fscore_for_L2 = avg_fscore
+        # Esto va fuera del loop de folds
+        avg_fscore = np.mean(fscores)
+        fscore_path.append(avg_fscore)
 
-            if avg_fscore > best_fscore:
-                best_fscore = avg_fscore
-                best_L2 = L2
-                best_threshold = threshold
-        fscore_path.append(best_fscore_for_L2)
+        # print(f"Avg fscore for L2={L2}: {avg_fscore}")
 
+        if avg_fscore > best_fscore:
+            # print(f"New best fscore: {avg_fscore} for L2={L2}")
+            best_fscore = avg_fscore
+            best_L2 = L2
+
+    # Graficar resultados
     met.graph_L2_fscore(possible_L2, fscore_path)
-    return best_L2, best_threshold
+    return best_L2
 
+def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5, validation_size = 0.2):
+    """X: data original
+    y: labels
+    folds: cantidad de folds para cross validation
+    thresholds: lista de thresholds para probar
+    Prueba diferentes valores de L2 y del threshold para encontrar el óptimo de L2 usando fscore"""
 
+    best_fscore = -1
+    best_threshold = None
+    fscore_path = []
+
+    df_dev = df_dev.sample(frac=1, random_state=42).reset_index(drop=True)
+    fold_size = len(df_dev) // folds
+
+    for threshold in thresholds:
+        # print(f"Testing threshold={threshold}")
+        fscores = []
+        for fold in range(folds):
+
+            start = fold * fold_size
+            end = (fold + 1) * fold_size if fold != folds - 1 else len(df_dev)
+            X_val_fold = df_dev.iloc[start:end]
+            X_train_fold = pd.concat([df_dev.iloc[:start], df_dev.iloc[end:]])
+
+            X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
+            X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
+
+            # Normalización con media y std del training
+            X_train = normalization(X_train, X_train.mean(), X_train.std())
+            X_val = normalization(X_val, X_train.mean(), X_train.std())
+
+            # Entrenar y predecir
+            model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=threshold)
+            predictions = model.predict(X_val)
+
+            # Calcular f-score
+            fscore = met.f_score(y_val, predictions)
+            # print("Fscore:", fscore)
+            fscores.append(fscore)
+
+        # Esto va fuera del loop de folds
+        avg_fscore = np.mean(fscores)
+        fscore_path.append(avg_fscore)
+
+        # print(f"Avg fscore for threshold={threshold}: {avg_fscore}")
+
+        if avg_fscore > best_fscore:
+            # print(f"New best fscore: {avg_fscore} for threshold={threshold}")
+            best_fscore = avg_fscore
+            best_threshold = threshold
+
+    # Graficar resultados
+    met.graph_L2_fscore(thresholds, fscore_path)
+    return best_threshold
