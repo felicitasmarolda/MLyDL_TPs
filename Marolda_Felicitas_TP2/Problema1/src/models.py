@@ -34,7 +34,6 @@ class Logistic_Regression:
         self.L2 = L2
         self.learning_rate = 0.01
         self.coef = np.zeros(self.X.shape[1])
-        print(f"Coef shape: {self.coef.shape}")
         self.coef_trace = []
         if fit:
             self.fit()

@@ -94,11 +94,14 @@ def split_data(X: pd.DataFrame, validation_size: float = 0.2) -> tuple:
     X_train = X_.drop(X_val.index)
     return X_train, X_val
 
-def min_max_scaling(X: pd.DataFrame, min, max) -> pd.DataFrame:
+def normalization(X: pd.DataFrame, mu, sigma) -> pd.DataFrame:
     """X: data original
-    Devuelve X escalado entre 0 y 1 por columna"""
-    X_scaled = (X - min) / (max - min)
-    return X_scaled
+    mu: media de la columna
+    sigma: desviación estándar de la columna
+    Devuelve X normalizado"""
+    X = (X - mu) / (sigma - mu)
+    return X
+
 
 def cross_validation(X_df_train, possible_L2, thresholds, folds: int = 5, validation_size = 0.2):
     """X: data original
@@ -127,11 +130,8 @@ def cross_validation(X_df_train, possible_L2, thresholds, folds: int = 5, valida
                 X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
                 X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
-                # print("Distribución de Diagnosis en train:")
-                # print(X_train_fold['Diagnosis'].value_counts())
-
-                X_train = min_max_scaling(X_train, X_train.min(), X_train.max())
-                X_val = min_max_scaling(X_val, X_train.min(), X_train.max())
+                X_train = normalization(X_train, X_train.mean(), X_train.std())
+                X_val = normalization(X_val, X_train.mean(), X_train.std())
                 model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
                 
                 predictions = model.predict(X_val)

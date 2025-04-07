@@ -36,7 +36,6 @@ def accuracy(y_true, y_pred):
 
 def precision(y_true, y_pred):
     TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
-    print(f"TP: {TP}, TN: {TN}, FP: {FP}, FN: {FN}")
     return TP / (TP + FP) if (TP + FP) > 0 else 0
 
 def recall(y_true, y_pred):
