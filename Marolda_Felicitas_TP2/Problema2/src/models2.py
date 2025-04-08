@@ -2,22 +2,31 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-class LogisticRegressionMulticlass:
-    def __init__(self, X, y, features, L2=0, threshold=0.5, max_iterations=1000, fit=True):
+class Logistic_Regression_Multiclass:
+    def __init__(self, X, y, features, L2=0, threshold = 0.5, max_iterations=1000, fit=True):
         """
         threshold: threshold value to classify as class 1 (default 0.5)
         max_iter: max number of iterations for gradient descent
         learning_rate: learning rate for gradient descent
         """
         self.X = np.column_stack((np.ones(X.shape[0]), X))
-        self.y = np.array(y)
+        self.y = np.array(y).flatten()
+        print("y:", self.y)
+        self.classes = np.unique(self.y)
+        self.y = pd.Categorical(self.y, categories=self.classes).codes
         self.features = features
         self.threshold = threshold
         self.max_iter = max_iterations
         self.L2 = L2
         self.learning_rate = 0.01
-        self.coef = np.zeros((len(np.unique(y)), self.X.shape[1]))
+        self.n_classes = len(self.classes)
+        self.coef = np.zeros((self.n_classes, self.X.shape[1]))
+        # self.coef = np.zeros((len(np.unique(y)), self.X.shape[1]))
         self.coef_trace = []
+        print("y valores únicos:", np.unique(self.y))
+        print("shape de coef:", self.coef.shape)
+
+
         if fit:
             self.fit()
         
@@ -33,10 +42,13 @@ class LogisticRegressionMulticlass:
     
     def gradient(self, y_pred):
         y_pred = y_pred.reshape(-1, self.coef.shape[0])
-        self.y = self.y.reshape(-1, 1)
+        # self.y = self.y.reshape(-1, 1)
         y_one_hot = np.zeros((self.y.size, self.coef.shape[0]))
+        print("y_one_hot shape:", y_one_hot.shape)
+        print("y_pred shape:", y_pred.shape)
+        print("self.y shape:", self.y.shape)
         y_one_hot[np.arange(self.y.size), self.y.flatten()] = 1
-        return (self.X.T @ (y_pred - y_one_hot)) / self.y.size + self.L2 * self.coef
+        return (self.X.T @ (y_pred - y_one_hot)) / self.y.size + self.L2 * self.coef.T
     
 
     def gradient_descent(self):
