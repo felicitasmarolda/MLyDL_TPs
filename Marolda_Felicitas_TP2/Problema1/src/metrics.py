@@ -88,13 +88,17 @@ def curve_ROC(y_true, y_scores):
 
         TPRs.append(TPR)
         FPRs.append(FPR)
+    
+    # ordenar
+    FPRs, TPRs = zip(*sorted(zip(FPRs, TPRs), key=lambda x: x[0]))
 
     return FPRs, TPRs
 
 
 def draw_ROC_curve(y_true, y_scores):
     FPRs, TPRs = curve_ROC(y_true, y_scores)
-
+    print("FPRs:", FPRs)
+    print("TPRs:", TPRs)
     plt.figure(figsize=(8, 6))
     plt.plot(FPRs, TPRs, marker='o', label='ROC Curve')
     plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier')  # línea de referencia
@@ -110,40 +114,12 @@ def AUC_ROC(y_true, y_scores):
     FPRs, TPRs = curve_ROC(y_true, y_scores)
     auc = np.trapz(TPRs, FPRs)
     return auc
-
-def draw_AUC_ROC(y_true, y_scores):
-    FPRs, TPRs = curve_ROC(y_true, y_scores)
-
-    plt.figure(figsize=(8, 6))
-    plt.plot(FPRs, TPRs, marker='o')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('AUC-ROC Curve')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.grid(True)
-    plt.fill_between(FPRs, TPRs, alpha=0.2)
-    plt.show()
     
 
 def AUC_PR(y_true, y_scores):
     precisions, recalls = curve_precision_recall(y_true, y_scores)
     auc = np.trapz(precisions, recalls)
     return auc
-
-def draw_AUC_PR(y_true, y_scores):
-    precisions, recalls = curve_precision_recall(y_true, y_scores)
-
-    plt.figure(figsize=(8, 6))
-    plt.plot(recalls, precisions, marker='o')
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title('AUC-PR Curve')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.grid(True)
-    plt.fill_between(recalls, precisions, alpha=0.2)
-    plt.show()
 
 def graph_val_fscore(val_list, fscores):
     """Graficamos el valor de L2 contra su fscore correspondiente"""
@@ -158,3 +134,72 @@ def graph_val_fscore(val_list, fscores):
     plt.savefig('L2_vs_Fscore.png')
     plt.close()
     
+def get_metrics(y_true, y_scores, threshold=0.5):
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    # Aplanamos
+    y_true = np.ravel(y_true)
+    y_scores = np.ravel(y_scores)
+    y_pred = (y_scores >= threshold).astype(int)
+
+    # Métricas
+    acc = accuracy(y_true, y_pred)
+    prec = precision(y_true, y_pred)
+    rec = recall(y_true, y_pred)
+    f1 = f_score(y_true, y_pred)
+    auc_roc = AUC_ROC(y_true, y_scores)
+    auc_pr = AUC_PR(y_true, y_scores)
+
+    # Mostrar tabla con pandas
+    metrics_df = pd.DataFrame({
+        "Accuracy": [acc],
+        "Precision": [prec],
+        "Recall": [rec],
+        "F1-score": [f1],
+        "AUC-ROC": [auc_roc],
+        "AUC-PR": [auc_pr]
+    })
+    print("===== MÉTRICAS =====")
+    print(metrics_df.to_string(index=False))
+
+    # Calcular curvas
+    FPRs, TPRs = curve_ROC(y_true, y_scores)
+    precisions, recalls = curve_precision_recall(y_true, y_scores)
+    TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
+    matrix = np.array([[TN, FP], [FN, TP]])
+
+    # === FIGURA ===
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+    # Confusion Matrix
+    sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues",
+                xticklabels=['Pred Neg', 'Pred Pos'],
+                yticklabels=['Actual Neg', 'Actual Pos'],
+                ax=axes[0])
+    axes[0].set_title("Confusion Matrix")
+    axes[0].set_xlabel("Predicted")
+    axes[0].set_ylabel("Actual")
+
+    # ROC Curve
+    print("FPRs:", FPRs)
+    print("TPRs:", TPRs)
+    axes[1].plot(FPRs, TPRs, marker='o', label='ROC Curve')
+    axes[1].plot([0, 1], [0, 1], 'k--', label='Random')
+    axes[1].set_xlabel('False Positive Rate')
+    axes[1].set_ylabel('True Positive Rate')
+    axes[1].set_title('ROC Curve')
+    axes[1].grid(True)
+    axes[1].legend()
+
+    # PR Curve
+    axes[2].plot(recalls, precisions, marker='o')
+    axes[2].set_xlabel('Recall')
+    axes[2].set_ylabel('Precision')
+    axes[2].set_title('Precision-Recall Curve')
+    axes[2].grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+    return metrics_df

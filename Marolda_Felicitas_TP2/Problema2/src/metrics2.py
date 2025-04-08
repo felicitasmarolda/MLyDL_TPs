@@ -30,7 +30,8 @@ def draw_confusion_matrix_multiclass(TP, TN, FP, FN):
     plt.show()
 
 def accuracy(y_true, y_pred):
-    return np.mean(y_true == y_pred)
+    TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred)
+    return (TP + TN) / (TP + TN + FP + FN)
 
 def precision_multiclass(y_true, y_pred):
     y_true = np.ravel(y_true)
