@@ -3,18 +3,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def confusion_matrix(y_true, y_pred):
+def confusion_matrix_multiclass(y_true, y_pred, label=None):
     """
-    Compute the confusion matrix and display it.
+    Matriz de confusión ara multiclase
     """
-    TP = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 1)
-    TN = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 0)
-    FP = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 1)
-    FN = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 0)
-
+    TP = sum(1 for yt, yp in zip(y_true, y_pred) if yt == label and yp == label)
+    FP = sum(1 for yt, yp in zip(y_true, y_pred) if yt != label and yp == label)
+    FN = sum(1 for yt, yp in zip(y_true, y_pred) if yt == label and yp != label)
+    TN = sum(1 for yt, yp in zip(y_true, y_pred) if yt != label and yp != label)
     return TP, TN, FP, FN
 
-def draw_confusion_matrix(TP, TN, FP, FN):
+
+def draw_confusion_matrix_multiclass(TP, TN, FP, FN):
     matrix = np.array([[TN, FP],
                        [FN, TP]])
 
@@ -30,35 +30,63 @@ def draw_confusion_matrix(TP, TN, FP, FN):
     plt.show()
 
 def accuracy(y_true, y_pred):
-    TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
-    return (TP + TN) / (TP + TN + FP + FN)
+    return np.mean(y_true == y_pred)
 
-def precision(y_true, y_pred):
-    TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
-    return TP / (TP + FP) if (TP + FP) > 0 else 0
+def precision_multiclass(y_true, y_pred):
+    y_true = np.ravel(y_true)
+    y_pred = np.ravel(y_pred)
+    
+    labels = np.unique(np.concatenate((y_true, y_pred)))
+    precisions = []
+    for label in labels:
+        TP, TN, FP, FN  = confusion_matrix_multiclass(y_true, y_pred, label)
+        if TP + FP == 0:
+            precisions.append(0)
+        else:
+            precisions.append(TP / (TP + FP))
+    return np.mean(precisions)
 
-def recall(y_true, y_pred):
-    TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
-    return TP / (TP + FN) if (TP + FN) > 0 else 0
 
-def f_score(y_true, y_pred, beta=1):
-    p = precision(y_true, y_pred)
-    # print(f"Precision: {p}")
-    r = recall(y_true, y_pred)
-    # print(f"Recall: {r}")
-    return (1 + beta**2) * (p * r) / (beta**2 * p + r) if (beta**2 * p + r) > 0 else 0
+def recall_multiclass(y_true, y_pred):
+    y_true = np.ravel(y_true)
+    y_pred = np.ravel(y_pred)
+    labels = np.unique(np.concatenate((y_true, y_pred)))
+    recalls = []
+    for label in labels:
+        TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred, label)
+        if TP + FN == 0:
+            recalls.append(0)
+        else:
+            recalls.append(TP / (TP + FN))
+    return np.mean(recalls)
+
+
+def f_score_multiclass(y_true, y_pred, beta=1):
+    y_true = np.ravel(y_true)
+    y_pred = np.ravel(y_pred)
+    p = precision_multiclass(y_true, y_pred)
+    r = recall_multiclass(y_true, y_pred)
+    if (beta**2 * p + r) == 0:
+        return 0
+    return (1 + beta**2) * (p * r) / (beta**2 * p + r)
 
 def curve_precision_recall(y_true, y_scores):
-    thresholds = np.sort(np.unique(y_scores))[::-1]
+    thresholds = np.arange(0, 1.01, 0.1)  # mejor usar 1.01 para incluir 1.0 por seguridad
     precisions = []
     recalls = []
 
     for threshold in thresholds:
         y_pred = (y_scores >= threshold).astype(int)
-        precisions.append(precision(y_true, y_pred))
-        recalls.append(recall(y_true, y_pred))
+
+        TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred)
+        precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+        recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+
+        precisions.append(precision)
+        recalls.append(recall)
 
     return precisions, recalls
+
 
 def draw_precision_recall_curve(y_true, y_scores):
     precisions, recalls = curve_precision_recall(y_true, y_scores)
@@ -82,7 +110,7 @@ def curve_ROC(y_true, y_scores):
     for threshold in thresholds:
         y_pred = (y_scores >= threshold).astype(int)
 
-        TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
+        TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred)
         TPR = TP / (TP + FN) if (TP + FN) > 0 else 0
         FPR = FP / (FP + TN) if (FP + TN) > 0 else 0
 

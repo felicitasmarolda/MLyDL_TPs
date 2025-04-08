@@ -29,7 +29,7 @@ def prepare_df(df_):
 
     df = df.dropna(subset=["CellTypeEncoded"])
     columnas_a_rellenar = df.columns.difference(["CellTypeEncoded"])
-    df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].mean())
+    df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].median())
 
     # features_names = list(df.columns)
     # print("Features names:", features_names)
@@ -156,7 +156,7 @@ def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size
             best_L2 = L2
 
     # Graficar resultados
-    met.graph_L2_fscore(possible_L2, fscore_path)
+    met.graph_val_fscore(possible_L2, fscore_path)
     return best_L2
 
 def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5, validation_size = 0.2):
@@ -211,5 +211,5 @@ def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5,
             best_threshold = threshold
 
     # Graficar resultados
-    met.graph_L2_fscore(thresholds, fscore_path)
+    met.graph_val_fscore(thresholds, fscore_path)
     return best_threshold

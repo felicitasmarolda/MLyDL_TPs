@@ -46,7 +46,7 @@ def normalization(X: pd.DataFrame, mu, sigma) -> pd.DataFrame:
     X = (X - mu) / (sigma - mu)
     return X
 
-def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5, validation_size = 0.2):
+def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5):
     """X: data original
     y: labels
     folds: cantidad de folds para cross validation
@@ -71,19 +71,19 @@ def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5, valida
             X_val_fold = df_dev.iloc[start:end]
             X_train_fold = pd.concat([df_dev.iloc[:start], df_dev.iloc[end:]])
 
-            X_train, y_train, features = df_breakDown(X_train_fold, y='war_class')
-            X_val, y_val, _ = df_breakDown(X_val_fold, y='war_class')
+            X_train, y_train, features = df_breakDown(X_train_fold, 'war_class')
+            X_val, y_val, _ = df_breakDown(X_val_fold, 'war_class')
 
             # Normalización con media y std del training
             X_train = normalization(X_train, X_train.mean(), X_train.std())
             X_val = normalization(X_val, X_train.mean(), X_train.std())
 
             # Entrenar y predecir
-            model = mod2.LogisticRegressionMulticlass(X_train, y_train, features, L2=L2, threshold=0.5)
+            model = mod2.Logistic_Regression_Multiclass(X_train, y_train, features, L2=L2, threshold=0.5)
             predictions = model.predict(X_val)
 
             # Calcular f-score
-            fscore = met2.f_score(y_val, predictions)
+            fscore = met2.f_score_multiclass(y_val, predictions)
             # print("Fscore:", fscore)
             fscores.append(fscore)
 
@@ -99,5 +99,5 @@ def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5, valida
             best_L2 = L2
 
     # Graficar resultados
-    met2.graph_L2_fscore(possible_L2, fscore_path)
+    met2.graph_val_fscore(possible_L2, fscore_path)
     return best_L2
