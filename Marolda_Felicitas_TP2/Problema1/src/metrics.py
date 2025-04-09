@@ -134,9 +134,7 @@ def graph_val_fscore(val_list, fscores):
     plt.savefig('L2_vs_Fscore.png')
     plt.close()
     
-def get_metrics(y_true, y_scores, threshold=0.5):
-    import matplotlib.pyplot as plt
-    import pandas as pd
+def get_metrics(y_true, y_scores, y_proba, threshold=0.5):
 
     # Aplanamos
     y_true = np.ravel(y_true)
@@ -148,8 +146,8 @@ def get_metrics(y_true, y_scores, threshold=0.5):
     prec = precision(y_true, y_pred)
     rec = recall(y_true, y_pred)
     f1 = f_score(y_true, y_pred)
-    auc_roc = AUC_ROC(y_true, y_scores)
-    auc_pr = AUC_PR(y_true, y_scores)
+    auc_roc = AUC_ROC(y_true, y_proba)
+    auc_pr = AUC_PR(y_true, y_proba)
 
     # Mostrar tabla con pandas
     metrics_df = pd.DataFrame({
@@ -164,8 +162,8 @@ def get_metrics(y_true, y_scores, threshold=0.5):
     print(metrics_df.to_string(index=False))
 
     # Calcular curvas
-    FPRs, TPRs = curve_ROC(y_true, y_scores)
-    precisions, recalls = curve_precision_recall(y_true, y_scores)
+    FPRs, TPRs = curve_ROC(y_true, y_proba)
+    precisions, recalls = curve_precision_recall(y_true, y_proba)
     TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
     matrix = np.array([[TN, FP], [FN, TP]])
 
@@ -182,8 +180,8 @@ def get_metrics(y_true, y_scores, threshold=0.5):
     axes[0].set_ylabel("Actual")
 
     # ROC Curve
-    print("FPRs:", FPRs)
-    print("TPRs:", TPRs)
+    # print("FPRs:", FPRs)
+    # print("TPRs:", TPRs)
     axes[1].plot(FPRs, TPRs, marker='o', label='ROC Curve')
     axes[1].plot([0, 1], [0, 1], 'k--', label='Random')
     axes[1].set_xlabel('False Positive Rate')

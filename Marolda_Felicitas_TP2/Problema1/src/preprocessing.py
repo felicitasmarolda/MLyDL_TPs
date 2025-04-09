@@ -69,6 +69,22 @@ def prepare_df(df_):
     return df
     return new_df
 
+def prepare_df_test(df_test, df_dev):
+    df_test = df_test.copy()
+    df_dev = df_dev.copy()
+
+    df_test['GeneticMutationBinary'] = (df_test['GeneticMutation'] == 'Presnt').astype(int)
+    df_test = df_test.drop(columns=['GeneticMutation'], errors='ignore')
+
+    df_test['CellTypeEncoded'], uniques = pd.factorize(df_test['CellType'])
+    df_test = df_test.drop(columns=['CellType'], errors='ignore')
+
+    df_test = df_test.dropna(subset=["CellTypeEncoded"])
+    columnas_a_rellenar = df_test.columns.difference(["CellTypeEncoded"])
+    df_test[columnas_a_rellenar] = df_test[columnas_a_rellenar].fillna(df_dev[columnas_a_rellenar].median())
+
+    return df_test
+
 def knn_for_nans(X, k = 4):
     """Recibimos un X df y devolvemos el mismo df pero donde hay nan hacemos knn y 
     ponemos el promedio."""
