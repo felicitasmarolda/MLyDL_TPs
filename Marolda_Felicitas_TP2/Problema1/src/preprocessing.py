@@ -69,21 +69,21 @@ def prepare_df(df_):
     return df
     return new_df
 
-def prepare_df_test(df_test, df_dev):
-    df_test = df_test.copy()
-    df_dev = df_dev.copy()
+def prepare_df_test(df_test_, df_dev_):
+    df_test_ = df_test_.copy()
+    df_dev_ = df_dev_.copy()
 
-    df_test['GeneticMutationBinary'] = (df_test['GeneticMutation'] == 'Presnt').astype(int)
-    df_test = df_test.drop(columns=['GeneticMutation'], errors='ignore')
+    df_test_['GeneticMutationBinary'] = (df_test_['GeneticMutation'] == 'Presnt').astype(int)
+    df_test_ = df_test_.drop(columns=['GeneticMutation'], errors='ignore')
 
-    df_test['CellTypeEncoded'], uniques = pd.factorize(df_test['CellType'])
-    df_test = df_test.drop(columns=['CellType'], errors='ignore')
+    df_test_['CellTypeEncoded'], uniques = pd.factorize(df_test_['CellType'])
+    df_test_ = df_test_.drop(columns=['CellType'], errors='ignore')
 
-    df_test = df_test.dropna(subset=["CellTypeEncoded"])
-    columnas_a_rellenar = df_test.columns.difference(["CellTypeEncoded"])
-    df_test[columnas_a_rellenar] = df_test[columnas_a_rellenar].fillna(df_dev[columnas_a_rellenar].median())
+    df_test_ = df_test_.dropna(subset=["CellTypeEncoded"])
+    columnas_a_rellenar = df_test_.columns.difference(["CellTypeEncoded"])
+    df_test_[columnas_a_rellenar] = df_test_[columnas_a_rellenar].fillna(df_dev_[columnas_a_rellenar].median())
 
-    return df_test
+    return df_test_
 
 def knn_for_nans(X, k = 4):
     """Recibimos un X df y devolvemos el mismo df pero donde hay nan hacemos knn y 
