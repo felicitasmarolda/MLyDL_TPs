@@ -20,12 +20,9 @@ def prepare_df(df_):
 
     # hacemos one hot encoding para CellType (una columna binaria para cad tipo)
     encoded = pd.get_dummies(df['CellType'], prefix='CellType')
-    encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']
-    # Si querés reemplazar la columna original en el dataframe:
-
-    df = pd.concat([df, encoded], axis=1)
-    df = df.drop('CellType', axis=1).join(encoded)
-    print("columns: ", df.columns)
+    encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']  # Asignás nombres fijos
+    df = pd.concat([df.drop(columns=['CellType'], errors='ignore'), encoded], axis=1)
+    # print("columns: ", df.columns)
 
     # convertimos a array y dividimos en X, y y las features
     # guardamos la columna 'Diagnosis' en una lista
@@ -35,6 +32,11 @@ def prepare_df(df_):
     df = df.dropna(subset=["GeneticMutationBinary", "Unknown", "Epthlial", "Mesnchymal"])
     columnas_a_rellenar = df.columns.difference(["GeneticMutationBinary","Unknown", "Epthlial", "Mesnchymal"])
     df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].median())
+    # pasamos a 0 y 1 las de recien
+    df['Unknown'] = df['Unknown'].astype(int)
+    df['Epthlial'] = df['Epthlial'].astype(int)
+    df['Mesnchymal'] = df['Mesnchymal'].astype(int)
+
 
     # features_names = list(df.columns)
     # print("Features names:", features_names)
@@ -70,7 +72,8 @@ def prepare_df(df_):
     # new_df = pd.DataFrame(X, columns=features)
     # new_df['CellTypeEncoded'] = cellType
     # new_df['Diagnosis'] = diagnosis
-    print(df.describe())
+    # print(df.describe())
+    print(df.head(1))
     return df
     return new_df
 
@@ -81,15 +84,16 @@ def prepare_df_test(df_test_, df_dev_):
     df_test_['GeneticMutationBinary'] = (df_test_['GeneticMutation'] == 'Presnt').astype(int)
     df_test_ = df_test_.drop(columns=['GeneticMutation'], errors='ignore')
 
-    # hacemos one hot encoding para CellType (una columna binaria para cad tipo)
-    encoded = pd.get_dummies(df['CellType'], prefix='CellType')
-    # Si querés reemplazar la columna original en el dataframe:
-    df = df.drop('CellType', axis=1).join(encoded)
-    print("columns: ", df.columns)
+    encoded = pd.get_dummies(df_test_['CellType'], prefix='CellType')
+    encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']  # Asignás nombres fijos
+    df_test_ = pd.concat([df_test_.drop(columns=['CellType'], errors='ignore'), encoded], axis=1)  # 🔥 Esta línea ya hace todo
+    df_test_['Unknown'] = df_test_['Unknown'].astype(int)
+    df_test_['Epthlial'] = df_test_['Epthlial'].astype(int)
+    df_test_['Mesnchymal'] = df_test_['Mesnchymal'].astype(int)
+    
 
-
-    df_test_ = df_test_.dropna(subset=["CellTypeEncoded", "GeneticMutationBinary"])
-    columnas_a_rellenar = df_test_.columns.difference(["CellTypeEncoded","GeneticMutationBinary"])
+    df_test_ = df_test_.dropna(subset=["GeneticMutationBinary", "Unknown", "Epthlial", "Mesnchymal"])
+    columnas_a_rellenar = df_test_.columns.difference(["GeneticMutationBinary","Unknown", "Epthlial", "Mesnchymal"])
     df_test_[columnas_a_rellenar] = df_test_[columnas_a_rellenar].fillna(df_dev_[columnas_a_rellenar].median())
 
     return df_test_
