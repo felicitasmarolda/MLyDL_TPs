@@ -201,3 +201,23 @@ def get_metrics(y_true, y_scores, y_proba, threshold=0.5):
     plt.show()
 
     return metrics_df
+
+def get_numeric_metrics(y_true, y_scores, y_proba, threshold=0.5):
+    """
+    Calculate numeric metrics for the given true labels and predicted scores.
+    """
+    # Aplanamos
+    y_true = np.ravel(y_true)
+    y_scores = np.ravel(y_scores)
+    y_pred = (y_scores >= threshold).astype(int)
+
+    # Métricas
+    acc = accuracy(y_true, y_pred)
+    prec = precision(y_true, y_pred)
+    rec = recall(y_true, y_pred)
+    f1 = f_score(y_true, y_pred)
+    auc_roc = AUC_ROC(y_true, y_proba)
+    auc_pr = AUC_PR(y_true, y_proba)
+
+    return [acc, prec, rec, f1, auc_roc, auc_pr]
+

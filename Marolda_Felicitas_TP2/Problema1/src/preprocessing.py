@@ -274,16 +274,16 @@ def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, fold
             # rebalanceo
             if rebalanceo == 'undersampling':
                 X_train, y_train = undersampling(X_train, y_train)
-                print("Undersampling")
+                # print("Undersampling")
             elif rebalanceo == 'oversampling mediante SMOTE':
                 X_train, y_train = oversampling_SMOTE(X_train, y_train)
-                print("Oversampling SMOTE")
+                # print("Oversampling SMOTE")
             elif rebalanceo == 'oversampling mediante duplicación':
                 X_train, y_train = oversampling_duplication(X_train, y_train)
-                print("Oversampling duplicación")
+                # print("Oversampling duplicación")
             elif rebalanceo == 'cost re-weighting':
                 X_train, y_train = cost_reweighting(X_train, y_train)
-                print("Cost re-weighting")
+                # print("Cost re-weighting")
             
             # Normalización con media y std del training
             X_train = normalization(X_train, X_train.mean(), X_train.std())
@@ -317,9 +317,11 @@ def undersampling(X, y):
     """eliminar muestras de la clase mayoritaria de manera aleatoria
     hasta que ambas clases tengan igual proporción."""
     # Contamos la cantidad de datos de cada clasificacion
+    X_balanced = X.copy()
+    y_balanced = y.copy()
     minority = 0
     mayority = 0
-    for i in y:
+    for i in y_balanced:
         if i == 1:
             minority += 1
         else:
@@ -327,21 +329,23 @@ def undersampling(X, y):
     
     # Sacamos aleatoriamente datos de la clase mayoritaria
     while mayority > minority:
-        index = np.random.randint(0, len(X))
-        if y[index] == 0:
-            X = np.delete(X, index, axis=0)
-            y = np.delete(y, index, axis=0)
+        index = np.random.randint(0, len(X_balanced))
+        if y_balanced[index] == 0:
+            X_balanced = np.delete(X_balanced, index, axis=0)
+            y_balanced = np.delete(y_balanced, index, axis=0)
             mayority -= 1
     
-    return X, y
+    return X_balanced, y_balanced
 
 def oversampling_duplication(X, y):
     """Oversampling mediante duplicación: duplicar muestras de la clase minoritaria
     de manera aleatoria, hasta que que ambas clases tengan igual proporción"""
+    X_balanced = X.copy()
+    y_balanced = y.copy()
     # Contamos la cantidad de datos de cada clasificacion
     minority = 0
     mayority = 0
-    for i in y:
+    for i in y_balanced:
         if i == 1:
             minority += 1
         else:
@@ -349,18 +353,20 @@ def oversampling_duplication(X, y):
     
     # Sacamos aleatoriamente datos de la clase mayoritaria
     while mayority > minority:
-        index = np.random.randint(0, len(X))
-        if y[index] == 1:
-            X = np.append(X, [X[index]], axis=0)
-            y = np.append(y, [y[index]])
+        index = np.random.randint(0, len(X_balanced))
+        if y_balanced[index] == 1:
+            X_balanced = np.append(X_balanced, [X_balanced[index]], axis=0)
+            y_balanced = np.append(y_balanced, [y_balanced[index]])
             minority += 1
     
-    return X, y
+    return X_balanced, y_balanced
 
 def oversampling_SMOTE(X, y):
+    X_balanced = X.copy()
+    y_balanced = y.copy()
     mayority = 0
     minority = 0
-    for i in y:
+    for i in y_balanced:
         if i == 1:
             minority += 1
         else:
@@ -368,22 +374,22 @@ def oversampling_SMOTE(X, y):
     
     while mayority > minority:
         # Elegimos aleatoriamente un dato de la clase minoritaria
-        index = np.random.randint(0, len(X))
-        if y[index] == 1:
+        index = np.random.randint(0, len(X_balanced))
+        if y_balanced[index] == 1:
             # Encontramos los KNN de ese dato
-            distances = np.linalg.norm(X - X[index], axis=1)
+            distances = np.linalg.norm(X_balanced - X_balanced[index], axis=1)
             neighbors = np.argsort(distances)[1:4]
             # Elegimos un vecino aleatoriamente
             neighbor_index = np.random.choice(neighbors)
             # Generamos un nuevo dato entre el dato original y el vecino
             lambda_ = np.random.rand()
-            new_sample = X[index] + lambda_ * (X[neighbor_index] - X[index])
+            new_sample = X_balanced[index] + lambda_ * (X_balanced[neighbor_index] - X_balanced[index])
             # Agregamos el nuevo dato al conjunto de datos
-            X = np.append(X, [new_sample], axis=0)
-            y = np.append(y, [y[index]])
+            X_balanced = np.append(X_balanced, [new_sample], axis=0)
+            y_balanced = np.append(y_balanced, [y_balanced[index]])
             minority += 1
     
-    return X, y
+    return X_balanced, y_balanced
 
 def cost_reweighting(X, y):
     # Contamos la cantidad de ejemplos de cada clase
