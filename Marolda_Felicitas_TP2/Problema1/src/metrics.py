@@ -246,23 +246,59 @@ def graph_all_metrics_rebalanced(numeric_sr, numeric_us, numeric_od, numeric_smo
     numeric_smote = np.array(numeric_smote)
     numeric_cr = np.array(numeric_cr)
 
-    # Graficar
-    plt.figure(figsize=(10, 6))
-    plt.plot(graphing_sr[0], graphing_sr[1], label='Rebalanceado con SR', marker='o')
-    plt.plot(graphing_us[0], graphing_us[1], label='Rebalanceado con US', marker='o')
-    plt.plot(graphing_od[0], graphing_od[1], label='Rebalanceado con OD', marker='o')
-    plt.plot(graphing_smote[0], graphing_smote[1], label='Rebalanceado con SMOTE', marker='o')
-    plt.plot(graphing_cr[0], graphing_cr[1], label='Rebalanceado con CR', marker='o')
+    TPRs = []
+    FPRs = []
+    precisions = []
+    recalls = []
 
-    # Configurar el gráfico
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title('Precision-Recall Curve for Different Rebalancing Methods')
-    plt.legend()
-    plt.grid()
+    TPRs.append(graphing_sr[1])
+    TPRs.append(graphing_us[1])
+    TPRs.append(graphing_od[1])
+    TPRs.append(graphing_smote[1])
+    TPRs.append(graphing_cr[1])
+    FPRs.append(graphing_sr[0])
+    FPRs.append(graphing_us[0])
+    FPRs.append(graphing_od[0])
+    FPRs.append(graphing_smote[0])
+    FPRs.append(graphing_cr[0])
+
+    precisions.append(graphing_sr[2])
+    precisions.append(graphing_us[2])
+    precisions.append(graphing_od[2])
+    precisions.append(graphing_smote[2])
+    precisions.append(graphing_cr[2])
+    recalls.append(graphing_sr[3])
+    recalls.append(graphing_us[3])
+    recalls.append(graphing_od[3])
+    recalls.append(graphing_smote[3])
+    recalls.append(graphing_cr[3])
+
+
+    # Graficar
+    # Plot Precision-Recall Curves
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+
+    # Plot Precision-Recall Curves
+    for i, (precision, recall, label) in enumerate(zip(precisions, recalls, ["SR", "US", "OD", "SMOTE", "CR"])):
+        axes[0].plot(recall, precision, label=f"{label} PR Curve")
+    axes[0].set_xlabel('Recall')
+    axes[0].set_ylabel('Precision')
+    axes[0].set_title('Precision-Recall Curves')
+    axes[0].legend()
+    axes[0].grid(True)
+
+    # Plot ROC Curves
+    for i, (fpr, tpr, label) in enumerate(zip(FPRs, TPRs, ["SR", "US", "OD", "SMOTE", "CR"])):
+        axes[1].plot(fpr, tpr, label=f"{label} ROC Curve")
+    axes[1].plot([0, 1], [0, 1], 'k--', label='Random Classifier')  # Reference line
+    axes[1].set_xlabel('False Positive Rate')
+    axes[1].set_ylabel('True Positive Rate')
+    axes[1].set_title('ROC Curves')
+    axes[1].legend()
+    axes[1].grid(True)
+
+    plt.tight_layout()
     plt.show()
-    plt.savefig('precision_recall_curve.png')
-    plt.close()
 
     # Hacer una tabla con las métricas
     metrics_df = pd.DataFrame({
@@ -274,8 +310,8 @@ def graph_all_metrics_rebalanced(numeric_sr, numeric_us, numeric_od, numeric_smo
     }, index=["Accuracy", "Precision", "Recall", "F1-score", "AUC-ROC", "AUC-PR"]).T
 
 
-    print("===== MÉTRICAS =====")
-    print(metrics_df.to_string(index=True))
+    # print("===== MÉTRICAS =====")
+    # print(metrics_df.to_string(index=True))
     metrics_df.to_csv('metrics.csv', index=True)
 
     return metrics_df
