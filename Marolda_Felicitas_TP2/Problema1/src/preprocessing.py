@@ -392,6 +392,9 @@ def oversampling_SMOTE(X, y):
     return X_balanced, y_balanced
 
 def cost_reweighting(X, y):
+
+    X_ = X.copy()
+    y_ = y.copy()
     # Contamos la cantidad de ejemplos de cada clase
     counts = y.value_counts()
     # Encontramos la clase mayoritaria
@@ -399,12 +402,12 @@ def cost_reweighting(X, y):
     # Encontramos la cantidad de ejemplos de la clase minoritaria
     minority_count = counts.min()
     # Hacemos oversampling de la clase minoritaria
-    X_minority = X[y != majority_class]
-    y_minority = y[y != majority_class]
+    X_minority = X_[y_ != majority_class]
+    y_minority = y_[y_ != majority_class]
     
     # Calculamos las probabilidades a-priori
     p1 = len(y_minority) / len(y)
-    p2 = len(X) / len(y)
+    p2 = len(X_) / len(y)
     
     # Calculamos el factor de re-weighting
     C = p2 / p1
@@ -413,7 +416,7 @@ def cost_reweighting(X, y):
     X_minority_weighted = X_minority * C
     
     # Concatenamos los datos ponderados con los de la clase mayoritaria
-    X_balanced = pd.concat([X[y == majority_class], X_minority_weighted])
-    y_balanced = pd.concat([y[y == majority_class], y[y != majority_class]])
+    X_balanced = pd.concat([X_[y_ == majority_class], X_minority_weighted])
+    y_balanced = pd.concat([y_[y_ == majority_class], y_[y_ != majority_class]])
     
     return X_balanced, y_balanced

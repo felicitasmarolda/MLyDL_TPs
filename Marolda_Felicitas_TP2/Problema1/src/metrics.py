@@ -221,3 +221,61 @@ def get_numeric_metrics(y_true, y_scores, y_proba, threshold=0.5):
 
     return [acc, prec, rec, f1, auc_roc, auc_pr]
 
+def get_metrics_for_graphing(y_true, y_scores, y_proba):
+    """
+    Get FPRs, TPRs, precisions, recalls.
+    """
+    # Aplanamos
+    y_true = np.ravel(y_true)
+    y_scores = np.ravel(y_scores)
+
+    # Calcular curvas
+    FPRs, TPRs = curve_ROC(y_true, y_proba)
+    precisions, recalls = curve_precision_recall(y_true, y_proba)
+
+    return [FPRs, TPRs, precisions, recalls]
+
+def graph_all_metrics_rebalanced(numeric_sr, numeric_us, numeric_od, numeric_smote, numeric_cr, graphing_sr, graphing_us, graphing_od, graphing_smote, graphing_cr):
+    """
+    Graficamos todas las metricas para los diferentes metodos de rebalancing
+    """
+    # Convertir a numpy arrays
+    numeric_sr = np.array(numeric_sr)
+    numeric_us = np.array(numeric_us)
+    numeric_od = np.array(numeric_od)
+    numeric_smote = np.array(numeric_smote)
+    numeric_cr = np.array(numeric_cr)
+
+    # Graficar
+    plt.figure(figsize=(10, 6))
+    plt.plot(graphing_sr[0], graphing_sr[1], label='Rebalanceado con SR', marker='o')
+    plt.plot(graphing_us[0], graphing_us[1], label='Rebalanceado con US', marker='o')
+    plt.plot(graphing_od[0], graphing_od[1], label='Rebalanceado con OD', marker='o')
+    plt.plot(graphing_smote[0], graphing_smote[1], label='Rebalanceado con SMOTE', marker='o')
+    plt.plot(graphing_cr[0], graphing_cr[1], label='Rebalanceado con CR', marker='o')
+
+    # Configurar el gráfico
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve for Different Rebalancing Methods')
+    plt.legend()
+    plt.grid()
+    plt.show()
+    plt.savefig('precision_recall_curve.png')
+    plt.close()
+
+    # Hacer una tabla con las métricas
+    metrics_df = pd.DataFrame({
+        "SR": numeric_sr,
+        "US": numeric_us,
+        "OD": numeric_od,
+        "SMOTE": numeric_smote,
+        "CR": numeric_cr
+    }, index=["Accuracy", "Precision", "Recall", "F1-score", "AUC-ROC", "AUC-PR"]).T
+
+
+    print("===== MÉTRICAS =====")
+    print(metrics_df.to_string(index=True))
+    metrics_df.to_csv('metrics.csv', index=True)
+
+    return metrics_df
