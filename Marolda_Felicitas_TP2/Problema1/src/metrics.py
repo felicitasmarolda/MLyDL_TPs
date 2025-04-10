@@ -182,7 +182,7 @@ def get_metrics(y_true, y_scores, y_proba, threshold=0.5):
     # ROC Curve
     # print("FPRs:", FPRs)
     # print("TPRs:", TPRs)
-    axes[1].plot(FPRs, TPRs, marker='o', label='ROC Curve')
+    axes[1].plot(FPRs, TPRs, label='ROC Curve')
     axes[1].plot([0, 1], [0, 1], 'k--', label='Random')
     axes[1].set_xlabel('False Positive Rate')
     axes[1].set_ylabel('True Positive Rate')
@@ -191,7 +191,7 @@ def get_metrics(y_true, y_scores, y_proba, threshold=0.5):
     axes[1].legend()
 
     # PR Curve
-    axes[2].plot(recalls, precisions, marker='o')
+    axes[2].plot(recalls, precisions)
     axes[2].set_xlabel('Recall')
     axes[2].set_ylabel('Precision')
     axes[2].set_title('Precision-Recall Curve')

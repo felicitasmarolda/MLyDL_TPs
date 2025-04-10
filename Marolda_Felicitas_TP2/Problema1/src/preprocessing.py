@@ -18,17 +18,22 @@ def prepare_df(df_):
     df['GeneticMutationBinary'] = (df['GeneticMutation'] == 'Presnt').astype(int)
     df = df.drop(columns=['GeneticMutation'], errors='ignore')
 
-    df['CellTypeEncoded'], uniques = pd.factorize(df['CellType'])
-    print(uniques)
-    df = df.drop(columns=['CellType'], errors='ignore')
+    # hacemos one hot encoding para CellType (una columna binaria para cad tipo)
+    encoded = pd.get_dummies(df['CellType'], prefix='CellType')
+    encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']
+    # Si querés reemplazar la columna original en el dataframe:
+
+    df = pd.concat([df, encoded], axis=1)
+    df = df.drop('CellType', axis=1).join(encoded)
+    print("columns: ", df.columns)
 
     # convertimos a array y dividimos en X, y y las features
     # guardamos la columna 'Diagnosis' en una lista
     # diagnosis = df['Diagnosis'].values
     # df = df.drop(columns=['Diagnosis'], errors='ignore')    # ahora el dataframe no tiene la columna de diagnosis
 
-    df = df.dropna(subset=["CellTypeEncoded"])
-    columnas_a_rellenar = df.columns.difference(["CellTypeEncoded"])
+    df = df.dropna(subset=["GeneticMutationBinary", "Unknown", "Epthlial", "Mesnchymal"])
+    columnas_a_rellenar = df.columns.difference(["GeneticMutationBinary","Unknown", "Epthlial", "Mesnchymal"])
     df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].median())
 
     # features_names = list(df.columns)
@@ -76,11 +81,15 @@ def prepare_df_test(df_test_, df_dev_):
     df_test_['GeneticMutationBinary'] = (df_test_['GeneticMutation'] == 'Presnt').astype(int)
     df_test_ = df_test_.drop(columns=['GeneticMutation'], errors='ignore')
 
-    df_test_['CellTypeEncoded'], uniques = pd.factorize(df_test_['CellType'])
-    df_test_ = df_test_.drop(columns=['CellType'], errors='ignore')
+    # hacemos one hot encoding para CellType (una columna binaria para cad tipo)
+    encoded = pd.get_dummies(df['CellType'], prefix='CellType')
+    # Si querés reemplazar la columna original en el dataframe:
+    df = df.drop('CellType', axis=1).join(encoded)
+    print("columns: ", df.columns)
 
-    df_test_ = df_test_.dropna(subset=["CellTypeEncoded"])
-    columnas_a_rellenar = df_test_.columns.difference(["CellTypeEncoded"])
+
+    df_test_ = df_test_.dropna(subset=["CellTypeEncoded", "GeneticMutationBinary"])
+    columnas_a_rellenar = df_test_.columns.difference(["CellTypeEncoded","GeneticMutationBinary"])
     df_test_[columnas_a_rellenar] = df_test_[columnas_a_rellenar].fillna(df_dev_[columnas_a_rellenar].median())
 
     return df_test_
@@ -176,6 +185,7 @@ def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size
     return best_L2
 
 def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5, validation_size = 0.2):
+
     """X: data original
     y: labels
     folds: cantidad de folds para cross validation
@@ -229,3 +239,171 @@ def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5,
     # Graficar resultados
     met.graph_val_fscore(thresholds, fscore_path)
     return best_threshold
+
+def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, folds: int = 5, validation_size = 0.2):
+    """X: data original
+    y: labels
+    folds: cantidad de folds para cross validation
+    thresholds: lista de thresholds para probar
+    Prueba diferentes valores de L2 y del threshold para encontrar el óptimo de L2 usando fscore"""
+
+    best_fscore = -1
+    best_L2 = None
+    fscore_path = []
+
+    df_dev = df_dev.sample(frac=1, random_state=42).reset_index(drop=True)
+    fold_size = len(df_dev) // folds
+
+    for L2 in possible_L2:
+        # print(f"Testing L2={L2}")
+        fscores = []
+        for fold in range(folds):
+
+            start = fold * fold_size
+            end = (fold + 1) * fold_size if fold != folds - 1 else len(df_dev)
+            X_val_fold = df_dev.iloc[start:end]
+            X_train_fold = pd.concat([df_dev.iloc[:start], df_dev.iloc[end:]])
+
+            X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
+            X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
+
+            # rebalanceo
+            if rebalanceo == 'undersampling':
+                X_train, y_train = undersampling(X_train, y_train)
+                print("Undersampling")
+            elif rebalanceo == 'oversampling mediante SMOTE':
+                X_train, y_train = oversampling_SMOTE(X_train, y_train)
+                print("Oversampling SMOTE")
+            elif rebalanceo == 'oversampling mediante duplicación':
+                X_train, y_train = oversampling_duplication(X_train, y_train)
+                print("Oversampling duplicación")
+            elif rebalanceo == 'cost re-weighting':
+                X_train, y_train = cost_reweighting(X_train, y_train)
+                print("Cost re-weighting")
+            
+            # Normalización con media y std del training
+            X_train = normalization(X_train, X_train.mean(), X_train.std())
+            X_val = normalization(X_val, X_train.mean(), X_train.std())
+
+            # Entrenar y predecir
+            model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
+            predictions = model.predict(X_val)
+
+            # Calcular f-score
+            fscore = met.f_score(y_val, predictions)
+            # print("Fscore:", fscore)
+            fscores.append(fscore)
+
+        # Esto va fuera del loop de folds
+        avg_fscore = np.mean(fscores)
+        fscore_path.append(avg_fscore)
+
+        # print(f"Avg fscore for L2={L2}: {avg_fscore}")
+
+        if avg_fscore > best_fscore:
+            # print(f"New best fscore: {avg_fscore} for L2={L2}")
+            best_fscore = avg_fscore
+            best_L2 = L2
+
+    # Graficar resultados
+    met.graph_val_fscore(possible_L2, fscore_path)
+    return best_L2
+
+def undersampling(X, y):
+    """eliminar muestras de la clase mayoritaria de manera aleatoria
+    hasta que ambas clases tengan igual proporción."""
+    # Contamos la cantidad de datos de cada clasificacion
+    minority = 0
+    mayority = 0
+    for i in y:
+        if i == 1:
+            minority += 1
+        else:
+            mayority += 1
+    
+    # Sacamos aleatoriamente datos de la clase mayoritaria
+    while mayority > minority:
+        index = np.random.randint(0, len(X))
+        if y[index] == 0:
+            X = np.delete(X, index, axis=0)
+            y = np.delete(y, index, axis=0)
+            mayority -= 1
+    
+    return X, y
+
+def oversampling_duplication(X, y):
+    """Oversampling mediante duplicación: duplicar muestras de la clase minoritaria
+    de manera aleatoria, hasta que que ambas clases tengan igual proporción"""
+    # Contamos la cantidad de datos de cada clasificacion
+    minority = 0
+    mayority = 0
+    for i in y:
+        if i == 1:
+            minority += 1
+        else:
+            mayority += 1
+    
+    # Sacamos aleatoriamente datos de la clase mayoritaria
+    while mayority > minority:
+        index = np.random.randint(0, len(X))
+        if y[index] == 1:
+            X = np.append(X, [X[index]], axis=0)
+            y = np.append(y, [y[index]])
+            minority += 1
+    
+    return X, y
+
+def oversampling_SMOTE(X, y):
+    mayority = 0
+    minority = 0
+    for i in y:
+        if i == 1:
+            minority += 1
+        else:
+            mayority += 1
+    
+    while mayority > minority:
+        # Elegimos aleatoriamente un dato de la clase minoritaria
+        index = np.random.randint(0, len(X))
+        if y[index] == 1:
+            # Encontramos los KNN de ese dato
+            distances = np.linalg.norm(X - X[index], axis=1)
+            neighbors = np.argsort(distances)[1:4]
+            # Elegimos un vecino aleatoriamente
+            neighbor_index = np.random.choice(neighbors)
+            # Generamos un nuevo dato entre el dato original y el vecino
+            lambda_ = np.random.rand()
+            new_sample = X[index] + lambda_ * (X[neighbor_index] - X[index])
+            # Agregamos el nuevo dato al conjunto de datos
+            X = np.append(X, [new_sample], axis=0)
+            y = np.append(y, [y[index]])
+            minority += 1
+    
+    return X, y
+
+def cost_reweighting(X, y):
+    # Contamos la cantidad de ejemplos de cada clase
+    counts = y.value_counts()
+    # Encontramos la clase mayoritaria
+    majority_class = counts.idxmax()
+    # Encontramos la cantidad de ejemplos de la clase minoritaria
+    minority_count = counts.min()
+    # Hacemos oversampling de la clase minoritaria
+    X_minority = X[y != majority_class]
+    y_minority = y[y != majority_class]
+    
+    # Calculamos las probabilidades a-priori
+    p1 = len(y_minority) / len(y)
+    p2 = len(X) / len(y)
+    
+    # Calculamos el factor de re-weighting
+    C = p2 / p1
+    
+    # Re-weighting los datos de la clase minoritaria
+    X_minority_weighted = X_minority * C
+    
+    # Concatenamos los datos ponderados con los de la clase mayoritaria
+    X_balanced = pd.concat([X[y == majority_class], X_minority_weighted])
+    y_balanced = pd.concat([y[y == majority_class], y[y != majority_class]])
+    
+    return X_balanced, y_balanced
