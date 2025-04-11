@@ -118,13 +118,14 @@ def fit_df_to_prespecified_bounds(df):
     return df
 
 def remove_outliers(X, bounds:dict):
-        # para el resto, establecemos un intervalo aceptable de -2svd y +2svd de la mediana, si se pasan lo llevamos al extremo del intervalo aceptable
-        for column in range(X.shape[1]):
-            lower_bound, upper_bound = bounds[column]
-            X[:, column] = np.clip(X[:, column], lower_bound, upper_bound)
+    for column in range(X.shape[1]):
+        lower_bound, upper_bound = bounds[column]
+        X[:, column] = np.clip(X[:, column], lower_bound, upper_bound)
+    
+    return X
+    
 
 def get_bounds(X, sd = 3):
-    """Recibimos un df y devolvemos un diccionario con los bounds de cada columna"""
     bounds = {}
     for column in range(X.shape[1]):
         median = np.median(X[:, column])
@@ -160,21 +161,8 @@ def split_data(X: pd.DataFrame, validation_size: float = 0.2) -> tuple:
     X_train = X_.drop(X_val.index)
     return X_train, X_val
 
-# def normalization(X, mu, sigma):
-#     """X: data original
-#     mu: media de la columna
-#     sigma: desviación estándar de la columna
-#     Devuelve X normalizado"""
-#     X = (X - mu) / (sigma - mu)
-#     return X
-
 
 def normalization(X, mu = None, sigma = None, bounds = None):
-    """Normaliza X por columna.
-    X: ndarray de datos
-    mu: media por columna
-    sigma: desviación estándar por columna
-    Devuelve X normalizado"""
     if mu is None:
         mu = np.mean(X, axis=0)
     if sigma is None:
@@ -182,10 +170,11 @@ def normalization(X, mu = None, sigma = None, bounds = None):
     if bounds is None:
         bounds = get_bounds(X)
 
-    # ante de normalizar sacamos los outliers
-    remove_outliers(X, bounds)
+    X = remove_outliers(X, bounds)
 
-    X = (X - mu) / sigma
+    binary_columns = np.all((X == 0) | (X == 1), axis=0)
+
+    X[:, ~binary_columns] = (X[:, ~binary_columns] - mu[~binary_columns]) / sigma[~binary_columns]
     return X
 
 def mean(X):

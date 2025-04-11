@@ -10,6 +10,22 @@ def prepare_df(df):
     df = df.dropna()
     return df
 
+
+def normalization(X, mu = None, sigma = None, bounds = None):
+    if mu is None:
+        mu = np.mean(X, axis=0)
+    if sigma is None:
+        sigma = np.std(X, axis=0)
+
+    X = (X - mu) / sigma
+    return X
+
+def median(X):
+    return np.median(X, axis=0)
+
+def std(X):
+    return np.std(X, axis=0)
+
 def feature_engineering(df):
     df['mp_x_poss'] = df['mp']*df['poss']
     df['poss_x_raptor_total'] = df['poss']*df['raptor_total']
@@ -38,22 +54,8 @@ def df_breakDown(df, target_column='y'):
     y = y.reshape(-1, 1)
     return X, y, features
 
-def normalization(X: pd.DataFrame, mu, sigma) -> pd.DataFrame:
-    """X: data original
-    mu: media de la columna
-    sigma: desviación estándar de la columna
-    Devuelve X normalizado"""
-    X = (X - mu) / (sigma - mu)
-    return X
 
 def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5):
-    """X: data original
-    y: labels
-    folds: cantidad de folds para cross validation
-    possible_L2: lista de posibles valores de L2 para probar
-    thresholds: lista de thresholds para probar
-    Prueba diferentes valores de L2 y del threshold para encontrar el óptimo de L2 usando fscore"""
-
     best_fscore = -1
     best_L2 = None
     fscore_path = []
