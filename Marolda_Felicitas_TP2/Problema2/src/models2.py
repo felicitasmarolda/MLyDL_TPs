@@ -162,13 +162,14 @@ class DecisionTree:
             return self.traverse_tree(x, right_tree)
 
 class RandomForest:
-    def __init__(self, X, y, features, n_trees=10, max_depth=7, features_perc = 0.6):
+    def __init__(self, X, y, features, n_trees=10, max_depth=7, features_perc = 0.6, data_perc = 0.6):
         self.X = X
         self.y = np.array(y).flatten()
         self.features = features
         self.n_trees = n_trees
         self.max_depth = max_depth
         self.features_perc = features_perc
+        self.data_perc = data_perc
         self.fit = True
         self.trees = []
         if self.fit:
@@ -176,10 +177,11 @@ class RandomForest:
 
     def fit_(self):
         for _ in range(self.n_trees):
-            # Bootstrap sampling
-            indices = np.random.choice(len(self.X), len(self.X), replace=True)
-            X_sample = self.X[indices]
-            y_sample = self.y[indices]
+            # sampleamos data_perc de los datos
+            n_samples = int(len(self.X) * self.data_perc)
+            sample_indices = np.random.choice(range(len(self.X)), n_samples, replace=True)
+            X_sample = self.X[sample_indices]
+            y_sample = self.y[sample_indices]
 
             # Randomly select features
             n_features = int(len(self.features) * self.features_perc)
