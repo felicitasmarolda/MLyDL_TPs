@@ -123,13 +123,32 @@ def split_data(X: pd.DataFrame, validation_size: float = 0.2) -> tuple:
     X_train = X_.drop(X_val.index)
     return X_train, X_val
 
-def normalization(X: pd.DataFrame, mu, sigma) -> pd.DataFrame:
-    """X: data original
-    mu: media de la columna
-    sigma: desviación estándar de la columna
+# def normalization(X, mu, sigma):
+#     """X: data original
+#     mu: media de la columna
+#     sigma: desviación estándar de la columna
+#     Devuelve X normalizado"""
+#     X = (X - mu) / (sigma - mu)
+#     return X
+
+import numpy as np
+
+def normalization(X, mu:list, sigma:list):
+    """Normaliza X por columna.
+    X: ndarray de datos
+    mu: media por columna
+    sigma: desviación estándar por columna
     Devuelve X normalizado"""
-    X = (X - mu) / (sigma - mu)
+    
+    X = (X - mu) / sigma
     return X
+
+def mean(X):
+    return np.mean(X, axis=0)
+
+def std(X):
+    return np.std(X, axis=0)
+
 
 
 def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size = 0.2):
@@ -161,8 +180,11 @@ def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size
             X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
             # Normalización con media y std del training
-            X_train = normalization(X_train, X_train.mean(), X_train.std())
-            X_val = normalization(X_val, X_train.mean(), X_train.std())
+            # print("Type: ", type(X_train), type(X_val))
+            # print("shape: ", X_train.shape, X_val.shape)
+            # print("mean: ", np.mean(X_train, axis = 0))
+            X_train = normalization(X_train, mean(X_train), std(X_train))
+            X_val = normalization(X_val, mean(X_train), std(X_train))
 
             # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
@@ -217,8 +239,8 @@ def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5,
             X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
             # Normalización con media y std del training
-            X_train = normalization(X_train, X_train.mean(), X_train.std())
-            X_val = normalization(X_val, X_train.mean(), X_train.std())
+            X_train = normalization(X_train, mean(X_train), std(X_train))
+            X_val = normalization(X_val, mean(X_train), std(X_train))
 
             # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=threshold)
@@ -286,8 +308,8 @@ def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, fold
                 # print("Cost re-weighting")
             
             # Normalización con media y std del training
-            X_train = normalization(X_train, X_train.mean(), X_train.std())
-            X_val = normalization(X_val, X_train.mean(), X_train.std())
+            X_train = normalization(X_train, mean(X_train), std(X_train))
+            X_val = normalization(X_val, mean(X_train), std(X_train))
 
             # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
