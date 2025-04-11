@@ -140,6 +140,9 @@ def get_metrics(y_true, y_pred, y_proba, threshold=0.5):
     y_true = np.ravel(y_true)
     y_pred = np.ravel(y_pred)
     y_proba = np.ravel(y_proba)
+    # print("y_true:", len(y_true))
+    # print("y_pred:", len(y_pred))
+    # print("y_proba:", len(y_proba))
 
     # Métricas
     acc = accuracy(y_true, y_pred)
