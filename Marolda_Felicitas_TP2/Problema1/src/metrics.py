@@ -7,11 +7,14 @@ def confusion_matrix(y_true, y_pred):
     """
     Compute the confusion matrix and display it.
     """
+    # print("y_true:", len(y_true))
+    # print("y_pred:", len(y_pred))
     TP = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 1)
     TN = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 0)
     FP = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 1)
     FN = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 0)
 
+    # print("TP:", TP, "TN:", TN, "FP:", FP, "FN:", FN)
     return TP, TN, FP, FN
 
 def draw_confusion_matrix(TP, TN, FP, FN):
@@ -94,7 +97,6 @@ def curve_ROC(y_true, y_scores):
 
     return FPRs, TPRs
 
-
 def draw_ROC_curve(y_true, y_scores):
     FPRs, TPRs = curve_ROC(y_true, y_scores)
     print("FPRs:", FPRs)
@@ -109,13 +111,11 @@ def draw_ROC_curve(y_true, y_scores):
     plt.legend()
     plt.show()
 
-
 def AUC_ROC(y_true, y_scores):
     FPRs, TPRs = curve_ROC(y_true, y_scores)
     auc = np.trapz(TPRs, FPRs)
     return auc
     
-
 def AUC_PR(y_true, y_scores):
     precisions, recalls = curve_precision_recall(y_true, y_scores)
     auc = np.trapz(precisions, recalls)
@@ -134,12 +134,12 @@ def graph_val_fscore(val_list, fscores):
     plt.savefig('L2_vs_Fscore.png')
     plt.close()
     
-def get_metrics(y_true, y_scores, y_proba, threshold=0.5):
+def get_metrics(y_true, y_pred, y_proba, threshold=0.5):
 
     # Aplanamos
     y_true = np.ravel(y_true)
-    y_scores = np.ravel(y_scores)
-    y_pred = (y_scores >= threshold).astype(int)
+    y_pred = np.ravel(y_pred)
+    y_proba = np.ravel(y_proba)
 
     # Métricas
     acc = accuracy(y_true, y_pred)
@@ -165,6 +165,7 @@ def get_metrics(y_true, y_scores, y_proba, threshold=0.5):
     FPRs, TPRs = curve_ROC(y_true, y_proba)
     precisions, recalls = curve_precision_recall(y_true, y_proba)
     TP, TN, FP, FN = confusion_matrix(y_true, y_pred)
+    # print("TP:", TP, "TN:", TN, "FP:", FP, "FN:", FN)
     matrix = np.array([[TN, FP], [FN, TP]])
 
     # === FIGURA ===

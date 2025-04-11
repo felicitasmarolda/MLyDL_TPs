@@ -36,7 +36,8 @@ def prepare_df(df_):
     df['Unknown'] = df['Unknown'].astype(int)
     df['Epthlial'] = df['Epthlial'].astype(int)
     df['Mesnchymal'] = df['Mesnchymal'].astype(int)
-
+    
+    df = remove_outliers(df)
 
     # features_names = list(df.columns)
     # print("Features names:", features_names)
@@ -91,12 +92,32 @@ def prepare_df_test(df_test_, df_dev_):
     df_test_['Epthlial'] = df_test_['Epthlial'].astype(int)
     df_test_['Mesnchymal'] = df_test_['Mesnchymal'].astype(int)
     
-
     df_test_ = df_test_.dropna(subset=["GeneticMutationBinary", "Unknown", "Epthlial", "Mesnchymal"])
     columnas_a_rellenar = df_test_.columns.difference(["GeneticMutationBinary","Unknown", "Epthlial", "Mesnchymal"])
     df_test_[columnas_a_rellenar] = df_test_[columnas_a_rellenar].fillna(df_dev_[columnas_a_rellenar].median())
 
+    df_test_ = remove_outliers(df_test_)
+
     return df_test_
+
+def remove_outliers(df):
+    """Elimina los outliers de mi df"""
+    # Si un valor en CellAdhesion es mayor a 1 que sea 1 y si es menor a 0 que sea 0
+    df.loc[df['CellAdhesion'] > 1, 'CellAdhesion'] = 1
+    df.loc[df['CellAdhesion'] < 0, 'CellAdhesion'] = 0
+
+    df.loc[df['NuclearMembrane'] > 5, 'NuclearMembrane'] = 5
+    df.loc[df['NuclearMembrane'] < 1, 'NuclearMembrane'] = 1
+
+    df.loc[df['Vascularization'] < 0, 'Vascularization'] = 0
+    df.loc[df['Vascularization'] > 10, 'Vascularization'] = 10
+
+    df.loc[df['InflammationMarkers'] < 0, 'InflammationMarkers'] = 0
+    df.loc[df['InflammationMarkers'] > 100, 'InflammationMarkers'] = 100
+
+    return df
+
+
 
 def knn_for_nans(X, k = 4):
     """Recibimos un X df y devolvemos el mismo df pero donde hay nan hacemos knn y 
@@ -296,6 +317,7 @@ def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, fold
             # rebalanceo
             if rebalanceo == 'undersampling':
                 X_train, y_train = undersampling(X_train, y_train)
+                # imprimimos la cantidad de 0 y 1 en y_train
                 # print("Undersampling")
             elif rebalanceo == 'oversampling mediante SMOTE':
                 X_train, y_train = oversampling_SMOTE(X_train, y_train)
