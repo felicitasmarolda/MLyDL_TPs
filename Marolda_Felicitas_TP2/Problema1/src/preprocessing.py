@@ -37,7 +37,7 @@ def prepare_df(df_):
     df['Epthlial'] = df['Epthlial'].astype(int)
     df['Mesnchymal'] = df['Mesnchymal'].astype(int)
     
-    df = remove_outliers(df)
+    df = fit_df_to_prespecified_bounds(df)
 
     # features_names = list(df.columns)
     # print("Features names:", features_names)
@@ -96,11 +96,11 @@ def prepare_df_test(df_test_, df_dev_):
     columnas_a_rellenar = df_test_.columns.difference(["GeneticMutationBinary","Unknown", "Epthlial", "Mesnchymal"])
     df_test_[columnas_a_rellenar] = df_test_[columnas_a_rellenar].fillna(df_dev_[columnas_a_rellenar].median())
 
-    df_test_ = remove_outliers(df_test_)
+    df_test_ = fit_df_to_prespecified_bounds(df_test_)
 
     return df_test_
 
-def remove_outliers(df):
+def fit_df_to_prespecified_bounds(df):
     """Elimina los outliers de mi df"""
     # Si un valor en CellAdhesion es mayor a 1 que sea 1 y si es menor a 0 que sea 0
     df.loc[df['CellAdhesion'] > 1, 'CellAdhesion'] = 1
@@ -117,6 +117,22 @@ def remove_outliers(df):
 
     return df
 
+def remove_outliers(X, bounds:dict):
+        # para el resto, establecemos un intervalo aceptable de -2svd y +2svd de la mediana, si se pasan lo llevamos al extremo del intervalo aceptable
+        for column in range(X.shape[1]):
+            lower_bound, upper_bound = bounds[column]
+            X[:, column] = np.clip(X[:, column], lower_bound, upper_bound)
+
+def get_bounds(X, sd = 3):
+    """Recibimos un df y devolvemos un diccionario con los bounds de cada columna"""
+    bounds = {}
+    for column in range(X.shape[1]):
+        median = np.median(X[:, column])
+        std = np.std(X[:, column])
+        lower_bound = median - sd * std
+        upper_bound = median + sd * std
+        bounds[column] = (lower_bound, upper_bound)
+    return bounds
 
 
 def knn_for_nans(X, k = 4):
@@ -152,20 +168,29 @@ def split_data(X: pd.DataFrame, validation_size: float = 0.2) -> tuple:
 #     X = (X - mu) / (sigma - mu)
 #     return X
 
-import numpy as np
 
-def normalization(X, mu:list, sigma:list):
+def normalization(X, mu = None, sigma = None, bounds = None):
     """Normaliza X por columna.
     X: ndarray de datos
     mu: media por columna
     sigma: desviación estándar por columna
     Devuelve X normalizado"""
-    
+    if mu is None:
+        mu = np.mean(X, axis=0)
+    if sigma is None:
+        sigma = np.std(X, axis=0)
+    if bounds is None:
+        bounds = get_bounds(X)
+
+    # ante de normalizar sacamos los outliers
+    remove_outliers(X, bounds)
+
     X = (X - mu) / sigma
     return X
 
 def mean(X):
-    return np.mean(X, axis=0)
+    # ESTO USA LA MEDIANAAA NO LA MEDIAAA
+    return np.median(X, axis=0)
 
 def std(X):
     return np.std(X, axis=0)
@@ -204,8 +229,8 @@ def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size
             # print("Type: ", type(X_train), type(X_val))
             # print("shape: ", X_train.shape, X_val.shape)
             # print("mean: ", np.mean(X_train, axis = 0))
-            X_train = normalization(X_train, mean(X_train), std(X_train))
-            X_val = normalization(X_val, mean(X_train), std(X_train))
+            X_train = normalization(X_train)
+            X_val = normalization(X_val, mean(X_train), std(X_train), get_bounds(X_train))
 
             # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
@@ -260,8 +285,8 @@ def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5,
             X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
             # Normalización con media y std del training
-            X_train = normalization(X_train, mean(X_train), std(X_train))
-            X_val = normalization(X_val, mean(X_train), std(X_train))
+            X_train = normalization(X_train)
+            X_val = normalization(X_val, mean(X_train), std(X_train), get_bounds(X_train))
 
             # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=threshold)
@@ -330,8 +355,8 @@ def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, fold
                 # print("Cost re-weighting")
             
             # Normalización con media y std del training
-            X_train = normalization(X_train, mean(X_train), std(X_train))
-            X_val = normalization(X_val, mean(X_train), std(X_train))
+            X_train = normalization(X_train)
+            X_val = normalization(X_val, mean(X_train), std(X_train), get_bounds(X_train))
 
             # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
