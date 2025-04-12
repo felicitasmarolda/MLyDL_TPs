@@ -11,7 +11,6 @@ class Logistic_Regression_Multiclass:
         """
         self.X = np.column_stack((np.ones(X.shape[0]), X))
         self.y = np.array(y).flatten()
-        # print("y:", self.y)
         self.classes = np.unique(self.y)
         self.y = pd.Categorical(self.y, categories=self.classes).codes
         self.features = features
@@ -68,7 +67,9 @@ class Logistic_Regression_Multiclass:
     
     def predict(self, X):
         y_proba = self.predict_proba(X)
-        return np.argmax(y_proba, axis=1)
+        class_indices = np.argmax(y_proba, axis=1)
+        return self.classes[class_indices]
+    
     
 class DecisionTree:
     def __init__(self, X, labels, features, max_depth=10, max_information_gain = 0.95):
@@ -189,6 +190,7 @@ class RandomForest:
             tree = DecisionTree(X_sample, y_sample, selected_features, max_depth=self.max_depth)
             self.trees.append(tree)
     
+
     def predict(self, X):
         predictions = np.zeros((X.shape[0], self.n_trees), dtype=int)
         for i, tree in enumerate(self.trees):

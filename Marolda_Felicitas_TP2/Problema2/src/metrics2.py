@@ -90,14 +90,13 @@ def f_score_multiclass(y_true, y_pred, beta=1):
     return f1
 
 
-def curve_precision_recall(y_true, y_scores, label):
-    thresholds = np.arange(0, 1.0, 0.1)
+def curve_precision_recall(y_true, y_scores, thresholds_pr, label):
     precisions = []
     recalls = []
 
     binary_true = (y_true == label).astype(int)
 
-    for threshold in thresholds:
+    for threshold in thresholds_pr:
         y_pred = (y_scores >= threshold).astype(int)
         TP, TN, FP, FN = get_trues_and_falses(binary_true, y_pred, label=1)
         if (TP + FP) > 0:
@@ -115,7 +114,7 @@ def curve_precision_recall(y_true, y_scores, label):
 
     return precisions, recalls
 
-def AUC_PR(y_true, y_proba):
+def AUC_PR(y_true, y_proba, thresholds_pr):
     y_true = np.ravel(y_true)
     classes = np.unique(y_true)
     aucs = []
@@ -124,14 +123,14 @@ def AUC_PR(y_true, y_proba):
     for label in classes:
         idx = class_to_index[label]
         scores = y_proba[:, idx]
-        precisions, recalls = curve_precision_recall(y_true, scores, label)
+        precisions, recalls = curve_precision_recall(y_true, scores, thresholds_pr, label)
         auc = np.trapz(precisions, recalls)
         aucs.append(auc)
 
     return np.mean(aucs)  # macro-promedio
 
 
-def curve_ROC_multiclass(y_true, y_proba):
+def curve_ROC_multiclass(y_true, y_proba, thresholds):
     y_true = np.ravel(y_true)
     classes = np.unique(y_true)
     roc_data = {}
@@ -145,7 +144,6 @@ def curve_ROC_multiclass(y_true, y_proba):
 
         TPRs = []
         FPRs = []
-        thresholds = np.arange(0, 1.01, 0.1)
         for threshold in thresholds:
             y_pred = (scores >= threshold).astype(int)
             TP, TN, FP, FN = get_trues_and_falses(binary_true, y_pred, label=1)
@@ -160,8 +158,8 @@ def curve_ROC_multiclass(y_true, y_proba):
 
 
 
-def AUC_ROC_multiclass(y_true, y_proba):
-    roc_data = curve_ROC_multiclass(y_true, y_proba)
+def AUC_ROC_multiclass(y_true, y_proba, thresholds):
+    roc_data = curve_ROC_multiclass(y_true, y_proba, thresholds)
     aucs = []
 
     for label, (FPRs, TPRs) in roc_data.items():
@@ -184,7 +182,7 @@ def graph_val_fscore(val_list, fscores):
     plt.savefig('L2_vs_Fscore.png')
     plt.close()
     
-def get_metrics_multiclass(y_true, y_pred, y_proba):
+def get_metrics_multiclass(y_true, y_pred, y_proba, thresholds_roc, thresholds_pr):
     y_true = np.ravel(y_true)
     y_pred = np.ravel(y_pred)
     y_proba = np.array(y_proba)  # debe ser (n_samples, n_classes)
@@ -194,23 +192,25 @@ def get_metrics_multiclass(y_true, y_pred, y_proba):
     prec = precision_multiclass(y_true, y_pred)
     rec = recall_multiclass(y_true, y_pred)
     f1 = f_score_multiclass(y_true, y_pred)
-    auc_roc = AUC_ROC_multiclass(y_true, y_proba)
-    auc_pr = AUC_PR(y_true, y_proba)
+    auc_roc = AUC_ROC_multiclass(y_true, y_proba, thresholds_roc)
+    auc_pr = AUC_PR(y_true, y_proba, thresholds_pr)
 
     # mostrar tabla con pandas
     metrics_df = pd.DataFrame({
-        "Accuracy": [acc],
-        "Precision": [prec],
-        "Recall": [rec],
-        "F1-score": [f1],
-        "AUC-ROC": [auc_roc],
-        "AUC-PR": [auc_pr]
+        "Metric": ["Accuracy", "Precision (Class 1)", "Precision (Class 2)", "Precision (Class 3)", 
+                   "Recall (Class 1)", "Recall (Class 2)", "Recall (Class 3)", 
+                   "F1-score (Class 1)", "F1-score (Class 2)", "F1-score (Class 3)", 
+                   "AUC-ROC", "AUC-PR"],
+        "Value": [acc, prec[0], prec[1], prec[2], 
+                  rec[0], rec[1], rec[2], 
+                  f1[0], f1[1], f1[2], 
+                  auc_roc, auc_pr]
     })
-    metrics_df.index = ["Metrics"]
-    metrics_df.to_csv("metrics.csv", index=True)
+    print("===== MÉTRICAS =====")
+    print(metrics_df.to_string(index=False))
 
     # calcular curvas ROC
-    roc_data = curve_ROC_multiclass(y_true, y_proba)
+    roc_data = curve_ROC_multiclass(y_true, y_proba, thresholds_roc)
 
     # confusin matriz
     matriz = confusion_matrix_multiclass(y_true, y_pred)
@@ -238,11 +238,10 @@ def get_metrics_multiclass(y_true, y_pred, y_proba):
     plt.legend(loc="lower right")
 
     # Precision-Recall curve por clase
-    # Precision-Recall curve por clase
     plt.subplot(1, 3, 3)
     classes = np.unique(y_true)
     for i, label in enumerate(classes):
-        precisions, recalls = curve_precision_recall(y_true, y_proba[:, i], label=label)
+        precisions, recalls = curve_precision_recall(y_true, y_proba[:, i], thresholds_pr, label)
         plt.plot(recalls, precisions, marker='o', label=f"Clase {label}")
     plt.xlabel('Recall')
     plt.ylabel('Precision')
@@ -254,6 +253,8 @@ def get_metrics_multiclass(y_true, y_pred, y_proba):
 
     plt.tight_layout()
     plt.show()
+
+    return metrics_df
 
 
 
