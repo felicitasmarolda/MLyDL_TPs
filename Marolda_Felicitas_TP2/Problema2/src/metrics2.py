@@ -91,7 +91,7 @@ def f_score_multiclass(y_true, y_pred, beta=1):
 
 
 def curve_precision_recall(y_true, y_scores, label):
-    thresholds = np.arange(0, 1.01, 0.1)
+    thresholds = np.arange(0, 1.0, 0.1)
     precisions = []
     recalls = []
 
@@ -100,8 +100,15 @@ def curve_precision_recall(y_true, y_scores, label):
     for threshold in thresholds:
         y_pred = (y_scores >= threshold).astype(int)
         TP, TN, FP, FN = get_trues_and_falses(binary_true, y_pred, label=1)
-        precision = TP / (TP + FP) if (TP + FP) > 0 else 0
-        recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+        if (TP + FP) > 0:
+            precision = TP / (TP + FP)
+        else:
+            precision = 0
+
+        if (TP + FN) > 0:
+            recall = TP / (TP + FN)
+        else:
+            recall = 0
 
         precisions.append(precision)
         recalls.append(recall)
@@ -183,8 +190,6 @@ def get_metrics_multiclass(y_true, y_pred, y_proba):
     y_proba = np.array(y_proba)  # debe ser (n_samples, n_classes)
 
     # metricas
-    print("y true: ", y_true.shape)
-    print("y pred: ", y_pred.shape)
     acc = accuracy(y_true, y_pred)
     prec = precision_multiclass(y_true, y_pred)
     rec = recall_multiclass(y_true, y_pred)
@@ -233,12 +238,16 @@ def get_metrics_multiclass(y_true, y_pred, y_proba):
     plt.legend(loc="lower right")
 
     # Precision-Recall curve por clase
+    # Precision-Recall curve por clase
     plt.subplot(1, 3, 3)
-    for label in range(len(np.unique(y_true))):
-        precisions, recalls = curve_precision_recall(y_true, y_proba[:, label], label=label)
+    classes = np.unique(y_true)
+    for i, label in enumerate(classes):
+        precisions, recalls = curve_precision_recall(y_true, y_proba[:, i], label=label)
         plt.plot(recalls, precisions, marker='o', label=f"Clase {label}")
     plt.xlabel('Recall')
     plt.ylabel('Precision')
+    plt.ylim(0, 1)
+    plt.xlim(0, 1)
     plt.title('Precision-Recall Curve')
     plt.grid(True)
     plt.legend(loc="lower left")
