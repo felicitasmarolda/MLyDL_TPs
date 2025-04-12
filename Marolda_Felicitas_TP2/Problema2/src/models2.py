@@ -70,7 +70,6 @@ class Logistic_Regression_Multiclass:
         y_proba = self.predict_proba(X)
         return np.argmax(y_proba, axis=1)
     
-
 class DecisionTree:
     def __init__(self, X, labels, features, max_depth=10, max_information_gain = 0.95):
         self.X = X
@@ -162,7 +161,7 @@ class DecisionTree:
             return self.traverse_tree(x, right_tree)
 
 class RandomForest:
-    def __init__(self, X, y, features, n_trees=10, max_depth=7, features_perc = 0.6, data_perc = 0.6):
+    def __init__(self, X, y, features, n_trees=10, max_depth=7, features_perc = 0.6, data_perc = 1):
         self.X = X
         self.y = np.array(y).flatten()
         self.features = features
@@ -177,11 +176,11 @@ class RandomForest:
 
     def fit_(self):
         for _ in range(self.n_trees):
-            # sampleamos data_perc de los datos
+            # sampleamos los datos para obetner un nevo dataset con data_perc * cantidad de datos como cantidad de datos
             n_samples = int(len(self.X) * self.data_perc)
-            sample_indices = np.random.choice(range(len(self.X)), n_samples, replace=True)
-            X_sample = self.X[sample_indices]
-            y_sample = self.y[sample_indices]
+            indices = np.random.choice(range(len(self.X)), n_samples, replace=True)
+            X_sample = self.X[indices]
+            y_sample = self.y[indices]
 
             # Randomly select features
             n_features = int(len(self.features) * self.features_perc)
@@ -199,4 +198,39 @@ class RandomForest:
         final_predictions = np.array([np.bincount(predictions[i]).argmax() for i in range(X.shape[0])])
         return final_predictions
     
+class LDAClassifier:
+    def __init__(self, X, y, features, fit=True):
+        self.X = X
+        self.y = np.array(y).flatten()
+        self.features = features
+        self.classes = np.unique(self.y)
+        self.means = None
+        self.cov_matrix = None
+        self.priors = None
+        if fit:
+            self.fit_()
 
+    def fit_(self):
+        self.calculate_means()
+        self.calculate_covariance_matrix()
+        self.calculate_priors()
+
+    def calculate_means(self):
+        self.means = np.array([np.mean(self.X[self.y == c], axis=0) for c in self.classes])
+
+    def calculate_covariance_matrix(self):
+        n_samples, n_features = self.X.shape
+        self.cov_matrix = np.zeros((n_features, n_features))
+        
+        for c in self.classes:
+            class_samples = self.X[self.y == c]
+            class_mean = np.mean(class_samples, axis=0)
+            centered_samples = class_samples - class_mean
+            self.cov_matrix += np.dot(centered_samples.T, centered_samples)
+        
+        # Normalize by the number of samples minus the number of classes
+        self.cov_matrix /= (n_samples - len(self.classes))
+
+    def calculate_priors(self):
+        n_samples = len(self.y)
+        self.priors = np.array([np.sum(self.y == c) / n_samples for c in self.classes])

@@ -187,13 +187,6 @@ def std(X):
 
 
 def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size = 0.2):
-    """X: data original
-    y: labels
-    folds: cantidad de folds para cross validation
-    possible_L2: lista de posibles valores de L2 para probar
-    thresholds: lista de thresholds para probar
-    Prueba diferentes valores de L2 y del threshold para encontrar el óptimo de L2 usando fscore"""
-
     best_fscore = -1
     best_L2 = None
     fscore_path = []

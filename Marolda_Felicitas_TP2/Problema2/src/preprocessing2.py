@@ -11,11 +11,11 @@ def prepare_df(df):
     return df
 
 
-def normalization(X, mu = None, sigma = None, bounds = None):
+def normalization(X, mu = None, sigma = None):
     if mu is None:
-        mu = np.mean(X, axis=0)
+        mu = median(X)
     if sigma is None:
-        sigma = np.std(X, axis=0)
+        sigma = std(X)
 
     X = (X - mu) / sigma
     return X
@@ -77,8 +77,8 @@ def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5):
             X_val, y_val, _ = df_breakDown(X_val_fold, 'war_class')
 
             # Normalización con media y std del training
-            X_train = normalization(X_train, X_train.mean(), X_train.std())
-            X_val = normalization(X_val, X_train.mean(), X_train.std())
+            X_train = normalization(X_train)
+            X_val = normalization(X_val, median(X_train), std(X_train))
 
             # Entrenar y predecir
             model = mod2.Logistic_Regression_Multiclass(X_train, y_train, features, L2=L2, threshold=0.5)
