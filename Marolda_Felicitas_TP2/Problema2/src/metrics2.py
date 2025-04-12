@@ -3,83 +3,103 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def confusion_matrix_multiclass(y_true, y_pred, label=None):
-    """
-    Matriz de confusión ara multiclase
-    """
-    TP = sum(1 for yt, yp in zip(y_true, y_pred) if yt == label and yp == label)
-    FP = sum(1 for yt, yp in zip(y_true, y_pred) if yt != label and yp == label)
-    FN = sum(1 for yt, yp in zip(y_true, y_pred) if yt == label and yp != label)
-    TN = sum(1 for yt, yp in zip(y_true, y_pred) if yt != label and yp != label)
-    return TP, TN, FP, FN
+def confusion_matrix_multiclass(y_true, y_pred):
+    y_true = np.ravel(y_true)
+    y_pred = np.ravel(y_pred)
+    classes = np.unique(np.concatenate((y_true, y_pred)))
+    matriz = np.zeros((len(classes), len(classes)), dtype=int)
+    for i, true in enumerate(classes):
+        for j, pred in enumerate(classes):
+            matriz[i, j] = np.sum((y_true == true) & (y_pred == pred))
 
+    return matriz
 
-def draw_confusion_matrix_multiclass(TP, TN, FP, FN):
-    matrix = np.array([[TN, FP],
-                       [FN, TP]])
-
-    # Plot
-    plt.figure(figsize=(5, 4))
-    sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues",
-                xticklabels=['Predicted Negative', 'Predicted Positive'],
-                yticklabels=['Actual Negative', 'Actual Positive'])
-    plt.title("Confusion Matrix")
-    plt.xlabel("Predicted Label")
-    plt.ylabel("Actual Label")
+def draw_confusion_matrix_multiclass(y_true, y_pred):
+    y_true_copy = np.ravel(y_true).copy()
+    y_pred_copy = np.ravel(y_pred).copy()
+    matriz = confusion_matrix_multiclass(y_true, y_pred)
+    classes = np.unique(np.concatenate((y_true_copy, y_pred_copy)))
+    df_cm = pd.DataFrame(matriz, index=classes, columns=classes)
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(df_cm, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.xticks(rotation=45)
+    plt.yticks(rotation=0)
     plt.tight_layout()
     plt.show()
 
+def get_trues_and_falses(y_true, y_pred, label):
+    y_true = np.ravel(y_true).copy()
+    y_pred = np.ravel(y_pred).copy()
+
+    TP = 0
+    TN = 0
+    FP = 0
+    FN = 0
+
+    for i in range(len(y_true)):
+        if y_true[i] == label and y_pred[i] == label:
+            TP += 1
+        elif y_true[i] == label and y_pred[i] != label:
+            FN += 1
+        elif y_true[i] != label and y_pred[i] == label:
+            FP += 1
+        else:
+            TN += 1
+
+    return TP, TN, FP, FN
+
 def accuracy(y_true, y_pred):
-    TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred)
-    return (TP + TN) / (TP + TN + FP + FN)
+    y_true = np.ravel(y_true).copy()
+    y_pred = np.ravel(y_pred).copy()
+    return np.sum(y_true == y_pred) / len(y_true)
 
 def precision_multiclass(y_true, y_pred):
-    y_true = np.ravel(y_true)
-    y_pred = np.ravel(y_pred)
-    
-    labels = np.unique(np.concatenate((y_true, y_pred)))
+    y_true = np.ravel(y_true).copy()
+    y_pred = np.ravel(y_pred).copy()
     precisions = []
-    for label in labels:
-        TP, TN, FP, FN  = confusion_matrix_multiclass(y_true, y_pred, label)
-        if TP + FP == 0:
-            precisions.append(0)
-        else:
-            precisions.append(TP / (TP + FP))
-    return np.mean(precisions)
-
+    classes = np.unique(np.concatenate((y_true, y_pred)))
+    for label in classes:
+        TP, TN, FP, FN = get_trues_and_falses(y_true, y_pred, label)
+        precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+        precisions.append(precision)
+    return precisions
 
 def recall_multiclass(y_true, y_pred):
-    y_true = np.ravel(y_true)
-    y_pred = np.ravel(y_pred)
-    labels = np.unique(np.concatenate((y_true, y_pred)))
+    y_true = np.ravel(y_true).copy()
+    y_pred = np.ravel(y_pred).copy()
     recalls = []
-    for label in labels:
-        TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred, label)
-        if TP + FN == 0:
-            recalls.append(0)
-        else:
-            recalls.append(TP / (TP + FN))
-    return np.mean(recalls)
-
+    classes = np.unique(np.concatenate((y_true, y_pred)))
+    for label in classes:
+        TP, TN, FP, FN = get_trues_and_falses(y_true, y_pred, label)
+        recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+        recalls.append(recall)
+    return recalls
 
 def f_score_multiclass(y_true, y_pred, beta=1):
     y_true = np.ravel(y_true)
     y_pred = np.ravel(y_pred)
-    p = precision_multiclass(y_true, y_pred)
-    r = recall_multiclass(y_true, y_pred)
-    if (beta**2 * p + r) == 0:
-        return 0
-    return (1 + beta**2) * (p * r) / (beta**2 * p + r)
+    p = np.array(precision_multiclass(y_true, y_pred))
+    r = np.array(recall_multiclass(y_true, y_pred))
+    numerator = (1 + beta**2) * (p * r)
+    denominator = (beta**2 * p + r)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        f1 = np.divide(numerator, denominator, out=np.zeros_like(numerator), where=denominator != 0)
+    return f1
 
-def curve_precision_recall(y_true, y_scores):
-    thresholds = np.arange(0, 1.01, 0.1)  # mejor usar 1.01 para incluir 1.0 por seguridad
+
+def curve_precision_recall(y_true, y_scores, label):
+    thresholds = np.arange(0, 1.01, 0.1)
     precisions = []
     recalls = []
 
+    binary_true = (y_true == label).astype(int)
+
     for threshold in thresholds:
         y_pred = (y_scores >= threshold).astype(int)
-
-        TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred)
+        TP, TN, FP, FN = get_trues_and_falses(binary_true, y_pred, label=1)
         precision = TP / (TP + FP) if (TP + FP) > 0 else 0
         recall = TP / (TP + FN) if (TP + FN) > 0 else 0
 
@@ -88,91 +108,61 @@ def curve_precision_recall(y_true, y_scores):
 
     return precisions, recalls
 
+def AUC_PR(y_true, y_proba):
+    y_true = np.ravel(y_true)
+    classes = np.unique(y_true)
+    aucs = []
 
-def draw_precision_recall_curve(y_true, y_scores):
-    precisions, recalls = curve_precision_recall(y_true, y_scores)
+    class_to_index = {label: idx for idx, label in enumerate(classes)}
+    for label in classes:
+        idx = class_to_index[label]
+        scores = y_proba[:, idx]
+        precisions, recalls = curve_precision_recall(y_true, scores, label)
+        auc = np.trapz(precisions, recalls)
+        aucs.append(auc)
 
-    plt.figure(figsize=(8, 6))
-    plt.plot(recalls, precisions)
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title('Precision-Recall Curve')
-    # plt.xlim([0.0, 1.0])
-    # plt.ylim([0.0, 1.05])
-    plt.grid(True)
-    plt.show()
-
-def curve_ROC(y_true, y_scores):
-    # print(np.unique(y_scores))
-    thresholds = np.arange(0, 1.01, 0.1)  # mejor usar 1.01 para incluir 1.0 por seguridad
-    TPRs = []
-    FPRs = []
-
-    for threshold in thresholds:
-        y_pred = (y_scores >= threshold).astype(int)
-
-        TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred)
-        TPR = TP / (TP + FN) if (TP + FN) > 0 else 0
-        FPR = FP / (FP + TN) if (FP + TN) > 0 else 0
-
-        TPRs.append(TPR)
-        FPRs.append(FPR)
-
-    return FPRs, TPRs
+    return np.mean(aucs)  # macro-promedio
 
 
-def draw_ROC_curve(y_true, y_scores):
-    FPRs, TPRs = curve_ROC(y_true, y_scores)
+def curve_ROC_multiclass(y_true, y_proba):
+    y_true = np.ravel(y_true)
+    classes = np.unique(y_true)
+    roc_data = {}
 
-    plt.figure(figsize=(8, 6))
-    plt.plot(FPRs, TPRs, marker='o', label='ROC Curve')
-    plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier')  # línea de referencia
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('ROC Curve')
-    plt.grid(True)
-    plt.legend()
-    plt.show()
+    class_to_index = {label: idx for idx, label in enumerate(classes)}
+
+    for label in classes:
+        binary_true = (y_true == label).astype(int)
+        idx = class_to_index[label]
+        scores = y_proba[:, idx]  # ahora sí el índice es válido
+
+        TPRs = []
+        FPRs = []
+        thresholds = np.arange(0, 1.01, 0.1)
+        for threshold in thresholds:
+            y_pred = (scores >= threshold).astype(int)
+            TP, TN, FP, FN = get_trues_and_falses(binary_true, y_pred, label=1)
+            TPR = TP / (TP + FN) if (TP + FN) > 0 else 0
+            FPR = FP / (FP + TN) if (FP + TN) > 0 else 0
+            TPRs.append(TPR)
+            FPRs.append(FPR)
+
+        roc_data[label] = (FPRs, TPRs)
+
+    return roc_data
 
 
-def AUC_ROC(y_true, y_scores):
-    FPRs, TPRs = curve_ROC(y_true, y_scores)
-    auc = np.trapz(TPRs, FPRs)
-    return auc
 
-def draw_AUC_ROC(y_true, y_scores):
-    FPRs, TPRs = curve_ROC(y_true, y_scores)
+def AUC_ROC_multiclass(y_true, y_proba):
+    roc_data = curve_ROC_multiclass(y_true, y_proba)
+    aucs = []
 
-    plt.figure(figsize=(8, 6))
-    plt.plot(FPRs, TPRs, marker='o')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('AUC-ROC Curve')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.grid(True)
-    plt.fill_between(FPRs, TPRs, alpha=0.2)
-    plt.show()
-    
+    for label, (FPRs, TPRs) in roc_data.items():
+        auc = np.trapz(TPRs, FPRs)
+        aucs.append(auc)
 
-def AUC_PR(y_true, y_scores):
-    precisions, recalls = curve_precision_recall(y_true, y_scores)
-    auc = np.trapz(precisions, recalls)
-    return auc
+    return np.mean(aucs)  # macro-promedio
 
-def draw_AUC_PR(y_true, y_scores):
-    precisions, recalls = curve_precision_recall(y_true, y_scores)
-
-    plt.figure(figsize=(8, 6))
-    plt.plot(recalls, precisions, marker='o')
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title('AUC-PR Curve')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.grid(True)
-    plt.fill_between(recalls, precisions, alpha=0.2)
-    plt.show()
 
 def graph_val_fscore(val_list, fscores):
     """Graficamos el valor de L2 contra su fscore correspondiente"""
@@ -187,17 +177,19 @@ def graph_val_fscore(val_list, fscores):
     plt.savefig('L2_vs_Fscore.png')
     plt.close()
     
-def get_metrics_multiclass(y_true, y_proba, y_pred):
+def get_metrics_multiclass(y_true, y_pred, y_proba):
     y_true = np.ravel(y_true)
     y_pred = np.ravel(y_pred)
-    y_proba = np.ravel(y_proba)
+    y_proba = np.array(y_proba)  # debe ser (n_samples, n_classes)
 
     # metricas
+    print("y true: ", y_true.shape)
+    print("y pred: ", y_pred.shape)
     acc = accuracy(y_true, y_pred)
     prec = precision_multiclass(y_true, y_pred)
     rec = recall_multiclass(y_true, y_pred)
     f1 = f_score_multiclass(y_true, y_pred)
-    auc_roc = AUC_ROC(y_true, y_proba)
+    auc_roc = AUC_ROC_multiclass(y_true, y_proba)
     auc_pr = AUC_PR(y_true, y_proba)
 
     # mostrar tabla con pandas
@@ -212,13 +204,50 @@ def get_metrics_multiclass(y_true, y_proba, y_pred):
     metrics_df.index = ["Metrics"]
     metrics_df.to_csv("metrics.csv", index=True)
 
-    # calcular curvas
-    FPRs, TPRs = curve_ROC(y_true, y_proba)
-    precisions, recalls = curve_precision_recall(y_true, y_proba)
+    # calcular curvas ROC
+    roc_data = curve_ROC_multiclass(y_true, y_proba)
 
     # confusin matriz
-    TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred, label=1)
-    
+    matriz = confusion_matrix_multiclass(y_true, y_pred)
+    classes = np.unique(np.concatenate((y_true, y_pred)))
+    df_cm = pd.DataFrame(matriz, index=classes, columns=classes)
+    plt.figure(figsize=(14, 7))
+
+    # Confusion Matrix
+    plt.subplot(1, 3, 1)
+    sns.heatmap(df_cm, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.xticks(rotation=45)
+    plt.yticks(rotation=0)
+
+    # ROC curve por clase
+    plt.subplot(1, 3, 2)
+    for label, (FPRs, TPRs) in roc_data.items():
+        plt.plot(FPRs, TPRs, marker='o', label=f"Clase {label}")
+    plt.xlabel('FPR')
+    plt.ylabel('TPR')
+    plt.title('ROC Curve')
+    plt.grid(True)
+    plt.legend(loc="lower right")
+
+    # Precision-Recall curve por clase
+    plt.subplot(1, 3, 3)
+    for label in range(len(np.unique(y_true))):
+        precisions, recalls = curve_precision_recall(y_true, y_proba[:, label], label=label)
+        plt.plot(recalls, precisions, marker='o', label=f"Clase {label}")
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.grid(True)
+    plt.legend(loc="lower left")
+
+    plt.tight_layout()
+    plt.show()
+
+
+
 
 def get_numeric_metrics_multiclass(y_true, y_pred):
     y_true = np.ravel(y_true)

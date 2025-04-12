@@ -161,7 +161,7 @@ class DecisionTree:
             return self.traverse_tree(x, right_tree)
 
 class RandomForest:
-    def __init__(self, X, y, features, n_trees=10, max_depth=7, features_perc = 0.6, data_perc = 1):
+    def __init__(self, X, y, features, n_trees=10, max_depth=5, features_perc = 0.6, data_perc = 1):
         self.X = X
         self.y = np.array(y).flatten()
         self.features = features
@@ -204,6 +204,7 @@ class LDAClassifier:
         self.y = np.array(y).flatten()
         self.features = features
         self.classes = np.unique(self.y)
+        print("self.classes:", self.classes)
         self.means = None
         self.cov_matrix = None
         self.priors = None
@@ -252,4 +253,5 @@ class LDAClassifier:
     
     def predict(self, X):
         probabilities = self.predict_proba(X)
-        return np.argmax(probabilities, axis=1)
+        class_indices = np.argmax(probabilities, axis=1)
+        return self.classes[class_indices]
