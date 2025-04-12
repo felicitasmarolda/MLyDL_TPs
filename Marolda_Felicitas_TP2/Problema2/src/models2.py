@@ -234,3 +234,22 @@ class LDAClassifier:
     def calculate_priors(self):
         n_samples = len(self.y)
         self.priors = np.array([np.sum(self.y == c) / n_samples for c in self.classes])
+
+    def predict_proba(self, X):
+        n_samples = X.shape[0]
+        n_classes = len(self.classes)
+        probabilities = np.zeros((n_samples, n_classes))
+
+        for i, c in enumerate(self.classes):
+            mean_diff = X - self.means[i]
+            inv_cov_matrix = np.linalg.inv(self.cov_matrix)
+            exponent = -0.5 * np.sum(np.dot(mean_diff, inv_cov_matrix) * mean_diff, axis=1)
+            probabilities[:, i] = self.priors[i] * np.exp(exponent)
+
+        # Normalize probabilities
+        probabilities /= np.sum(probabilities, axis=1, keepdims=True)
+        return probabilities
+    
+    def predict(self, X):
+        probabilities = self.predict_proba(X)
+        return np.argmax(probabilities, axis=1)

@@ -187,3 +187,71 @@ def graph_val_fscore(val_list, fscores):
     plt.savefig('L2_vs_Fscore.png')
     plt.close()
     
+def get_metrics_multiclass(y_true, y_proba, y_pred):
+    y_true = np.ravel(y_true)
+    y_pred = np.ravel(y_pred)
+    y_proba = np.ravel(y_proba)
+
+    # metricas
+    acc = accuracy(y_true, y_pred)
+    prec = precision_multiclass(y_true, y_pred)
+    rec = recall_multiclass(y_true, y_pred)
+    f1 = f_score_multiclass(y_true, y_pred)
+    auc_roc = AUC_ROC(y_true, y_proba)
+    auc_pr = AUC_PR(y_true, y_proba)
+
+    # mostrar tabla con pandas
+    metrics_df = pd.DataFrame({
+        "Accuracy": [acc],
+        "Precision": [prec],
+        "Recall": [rec],
+        "F1-score": [f1],
+        "AUC-ROC": [auc_roc],
+        "AUC-PR": [auc_pr]
+    })
+    metrics_df.index = ["Metrics"]
+    metrics_df.to_csv("metrics.csv", index=True)
+
+    # calcular curvas
+    FPRs, TPRs = curve_ROC(y_true, y_proba)
+    precisions, recalls = curve_precision_recall(y_true, y_proba)
+
+    # confusin matriz
+    TP, TN, FP, FN = confusion_matrix_multiclass(y_true, y_pred, label=1)
+    
+
+def get_numeric_metrics_multiclass(y_true, y_pred):
+    y_true = np.ravel(y_true)
+    y_pred = np.ravel(y_pred)
+
+    acc = accuracy(y_true, y_pred)
+    prec = precision_multiclass(y_true, y_pred)
+    rec = recall_multiclass(y_true, y_pred)
+    f1 = f_score_multiclass(y_true, y_pred)
+
+    return [acc, prec, rec, f1]
+
+def graph_all_metrics_multiclass(numeric_sr, numeric_us, numeric_od, numeric_smote, numeric_cr):
+    """
+    Graficamos Accuracy, Precision, Recall y F1 para cada estrategia multiclase
+    """
+    metrics_df = pd.DataFrame({
+        "SR": numeric_sr,
+        "US": numeric_us,
+        "OD": numeric_od,
+        "SMOTE": numeric_smote,
+        "CR": numeric_cr
+    }, index=["Accuracy", "Precision", "Recall", "F1-score"]).T
+
+    metrics_df.plot(kind='bar', figsize=(10, 6))
+    plt.title("Comparación de métricas multiclase por técnica de rebalanceo")
+    plt.ylabel("Valor")
+    plt.xticks(rotation=0)
+    plt.grid(axis='y')
+    plt.legend(loc='lower right')
+    plt.tight_layout()
+    plt.show()
+
+    metrics_df.to_csv("metrics_multiclass.csv", index=True)
+
+    return metrics_df

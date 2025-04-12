@@ -103,3 +103,28 @@ def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5):
     # Graficar resultados
     met2.graph_val_fscore(possible_L2, fscore_path)
     return best_L2
+
+def undersampling(X, y):
+    X_balanced = X.copy()
+    y_balanced = y.copy()
+    
+    # Count occurrences of each class
+    unique_classes, class_counts = np.unique(y_balanced, return_counts=True)
+    min_count = np.min(class_counts)  # Find the minority class count
+
+    # Create a mask to keep track of indices to retain
+    indices_to_keep = np.array([], dtype=int)
+
+    for cls in unique_classes:
+        # Get indices of the current class
+        class_indices = np.where(y_balanced == cls)[0]
+        # Randomly select min_count indices from the current class
+        selected_indices = np.random.choice(class_indices, min_count, replace=False)
+        # Append selected indices to the mask
+        indices_to_keep = np.concatenate((indices_to_keep, selected_indices))
+
+    # Subset X and y using the indices to keep
+    X_balanced = X_balanced[indices_to_keep]
+    y_balanced = y_balanced[indices_to_keep]
+
+    return X_balanced, y_balanced

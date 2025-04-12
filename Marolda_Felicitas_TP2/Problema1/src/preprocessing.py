@@ -172,9 +172,7 @@ def normalization(X, mu = None, sigma = None, bounds = None):
 
     X = remove_outliers(X, bounds)
 
-    binary_columns = np.all((X == 0) | (X == 1), axis=0)
-
-    X[:, ~binary_columns] = (X[:, ~binary_columns] - mu[~binary_columns]) / sigma[~binary_columns]
+    X = (X - mu) / sigma
     return X
 
 def mean(X):
