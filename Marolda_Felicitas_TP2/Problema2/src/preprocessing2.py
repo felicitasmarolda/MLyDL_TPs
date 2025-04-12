@@ -11,7 +11,8 @@ def prepare_df(df):
     return df
 
 
-def normalization(X, mu = None, sigma = None):
+def normalization(X_, mu = None, sigma = None):
+    X = X_.copy()
     if mu is None:
         mu = median(X)
     if sigma is None:
