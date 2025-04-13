@@ -168,8 +168,6 @@ def curve_ROC_multiclass(y_true, y_proba, thresholds):
 
     return roc_data
 
-
-
 def AUC_ROC_multiclass(y_true, y_proba, thresholds):
     roc_data = curve_ROC_multiclass(y_true, y_proba, thresholds)
     aucs = []
@@ -179,7 +177,6 @@ def AUC_ROC_multiclass(y_true, y_proba, thresholds):
         aucs.append(auc)
 
     return np.mean(aucs)  # macro-promedio
-
 
 def graph_val_fscore(val_list, fscores):
     """Graficamos el valor de L2 contra su fscore correspondiente"""
@@ -268,41 +265,144 @@ def get_metrics_multiclass(y_true, y_pred, y_proba, thresholds_roc, thresholds_p
 
     return metrics_df
 
-
-
-
-def get_numeric_metrics_multiclass(y_true, y_pred):
+def get_numeric_metrics_multiclass(y_true, y_pred, y_proba, thresholds_roc, thresholds_pr):
     y_true = np.ravel(y_true)
     y_pred = np.ravel(y_pred)
 
     acc = accuracy(y_true, y_pred)
-    prec = precision_multiclass(y_true, y_pred)
+    pr = precision_multiclass(y_true, y_pred)
     rec = recall_multiclass(y_true, y_pred)
     f1 = f_score_multiclass(y_true, y_pred)
+    auc_roc = AUC_ROC_multiclass(y_true, y_proba, thresholds_roc)
+    auc_pr = AUC_PR_multiclass(y_true, y_proba, thresholds_pr)
 
-    return [acc, prec, rec, f1]
+    return [acc, pr, rec, f1, auc_roc, auc_pr]
 
-def graph_all_metrics_multiclass(numeric_sr, numeric_us, numeric_od, numeric_smote, numeric_cr):
-    """
-    Graficamos Accuracy, Precision, Recall y F1 para cada estrategia multiclase
-    """
+
+def graph_all_for_3(metrics1, metrics2, metrics3, y_true, y_proba1, y_pred1, y_proba2, y_pred2, y_proba3, y_pred3, thresholds_roc1, thresholds_pr1, thresholds_roc2, thresholds_pr2, thresholds_roc3, thresholds_pr3):
+    """Graficamos todas las métricas para los 3 modelos"""
+    # Crear un DataFrame para mostrar las métricas de los tres modelos juntos
     metrics_df = pd.DataFrame({
-        "SR": numeric_sr,
-        "US": numeric_us,
-        "OD": numeric_od,
-        "SMOTE": numeric_smote,
-        "CR": numeric_cr
-    }, index=["Accuracy", "Precision", "Recall", "F1-score"]).T
+        "Metric": ["Accuracy", 
+                   "Precision (Class 1)", "Precision (Class 2)", "Precision (Class 3)", 
+                   "Recall (Class 1)", "Recall (Class 2)", "Recall (Class 3)", 
+                   "F1-score (Class 1)", "F1-score (Class 2)", "F1-score (Class 3)", 
+                   "AUC-ROC", "AUC-PR"],
+        "LDA": [metrics1[0], metrics1[1][0], metrics1[1][1], metrics1[1][2], 
+                    metrics1[2][0], metrics1[2][1], metrics1[2][2], 
+                    metrics1[3][0], metrics1[3][1], metrics1[3][2], 
+                    metrics1[4], metrics1[5]],
+        "Random Forest": [metrics2[0], metrics2[1][0], metrics2[1][1], metrics2[1][2], 
+                    metrics2[2][0], metrics2[2][1], metrics2[2][2], 
+                    metrics2[3][0], metrics2[3][1], metrics2[3][2], 
+                    metrics2[4], metrics2[5]],
+        "Logistic Regression": [metrics3[0], metrics3[1][0], metrics3[1][1], metrics3[1][2], 
+                    metrics3[2][0], metrics3[2][1], metrics3[2][2], 
+                    metrics3[3][0], metrics3[3][1], metrics3[3][2], 
+                    metrics3[4], metrics3[5]]
+    })
 
-    metrics_df.plot(kind='bar', figsize=(10, 6))
-    plt.title("Comparación de métricas multiclase por técnica de rebalanceo")
-    plt.ylabel("Valor")
-    plt.xticks(rotation=0)
-    plt.grid(axis='y')
-    plt.legend(loc='lower right')
+    print("===== MÉTRICAS DE LOS TRES MODELOS =====")
+    print(metrics_df.to_string(index=False))
+
+    print(y_proba1.shape, y_pred1.shape)
+    print(y_proba2.shape, y_pred2.shape)
+    print(y_proba3.shape, y_pred3.shape)
+
+    y_true = np.ravel(y_true).copy()
+    y_pred1 = np.ravel(y_pred1).copy()
+    y_pred2 = np.ravel(y_pred2).copy()
+    y_pred3 = np.ravel(y_pred3).copy()
+    y_proba1 = np.array(y_proba1).copy()
+    y_proba2 = np.array(y_proba2).copy()
+    y_proba3 = np.array(y_proba3).copy()
+
+    # Graficar la matriz de confusión para cada modelo
+    plt.figure(figsize=(20, 6))
+
+    plt.subplot(1, 3, 1)
+    print("y true: ", y_true.shape)
+    print("y pred: ", y_pred1.shape)
+    matriz1 = confusion_matrix_multiclass(y_true, y_pred1)
+    print("y true: ", y_true.shape)
+    print("y pred: ", y_pred1.shape)
+    classes1 = np.unique(np.concatenate((y_true, y_pred1)))
+    df_cm1 = pd.DataFrame(matriz1, index=classes1, columns=classes1)
+    sns.heatmap(df_cm1, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
+    plt.title('Confusion Matrix - Model 1')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.xticks(rotation=45)
+    plt.yticks(rotation=0)
+
+    plt.subplot(1, 3, 2)
+    matriz2 = confusion_matrix_multiclass(y_true, y_pred2)
+    classes2 = np.unique(np.concatenate((y_true, y_pred2)))
+    df_cm2 = pd.DataFrame(matriz2, index=classes2, columns=classes2)
+    sns.heatmap(df_cm2, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
+    plt.title('Confusion Matrix - Model 2')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.xticks(rotation=45)
+    plt.yticks(rotation=0)
+
+    plt.subplot(1, 3, 3)
+    matriz3 = confusion_matrix_multiclass(y_true, y_pred3)
+    classes3 = np.unique(np.concatenate((y_true, y_pred3)))
+    df_cm3 = pd.DataFrame(matriz3, index=classes3, columns=classes3)
+    sns.heatmap(df_cm3, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
+    plt.title('Confusion Matrix - Model 3')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.xticks(rotation=45)
+    plt.yticks(rotation=0)
+
     plt.tight_layout()
     plt.show()
 
-    metrics_df.to_csv("metrics_multiclass.csv", index=True)
+    # Graficar las curvas ROC para cada modelo
+    thresholds_roc = np.linspace(0, 1, 100)
 
-    return metrics_df
+    # Graficar las curvas Precision-Recall para cada modelo
+    plt.figure(figsize=(20, 6))
+
+    plt.subplot(1, 2, 1)
+    model_names = ["LDA", "Random Forest", "Logistic Regression"]
+    colors = ["blue", "green", "red"]
+
+    for i, (proba, thresholds_pr, name, color) in enumerate(zip(
+        [y_proba1, y_proba2, y_proba3],
+        [thresholds_pr1, thresholds_pr2, thresholds_pr3],
+        model_names, colors)):
+        
+        classes = np.unique(y_true)
+        for j, label in enumerate(classes):
+            precisions, recalls = curve_precision_recall(y_true, proba[:, j], thresholds_pr, label)
+            plt.plot(recalls, precisions, label=f"{name} - Clase {label}", color=color, alpha=0.5 + 0.2 * j)
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curves')
+    plt.legend()
+    plt.grid(True)
+
+    # Graficar las curvas ROC para cada modelo
+    plt.subplot(1, 2, 2)
+    for proba, thresholds_roc, name, color in zip(
+        [y_proba1, y_proba2, y_proba3],
+        [thresholds_roc1, thresholds_roc2, thresholds_roc3],
+        model_names, colors):
+        
+        roc_data = curve_ROC_multiclass(y_true, proba, thresholds_roc)
+        for label, (FPRs, TPRs) in roc_data.items():
+            plt.plot(FPRs, TPRs, label=f"{name} - Clase {label}", alpha=0.5)
+
+    plt.xlabel('FPR')
+    plt.ylabel('TPR')
+    plt.title('ROC Curves')
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
