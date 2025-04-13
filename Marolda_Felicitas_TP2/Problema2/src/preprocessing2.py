@@ -56,7 +56,8 @@ def df_breakDown(df, target_column='y'):
     return X, y, features
 
 
-def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5):
+def cross_validation_for_LogisticReg(df_dev_, possible_L2, folds: int = 10):
+    df_dev = df_dev_.copy()
     best_fscore = -1
     best_L2 = None
     fscore_path = []
@@ -77,6 +78,9 @@ def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5):
             X_train, y_train, features = df_breakDown(X_train_fold, 'war_class')
             X_val, y_val, _ = df_breakDown(X_val_fold, 'war_class')
 
+            # undersampling
+            X_train, y_train = undersampling(X_train, y_train)
+
             # Normalización con media y std del training
             X_train = normalization(X_train)
             X_val = normalization(X_val, median(X_train), std(X_train))
@@ -87,7 +91,7 @@ def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5):
 
             # Calcular f-score
             fscore = met2.f_score_multiclass(y_val, predictions)
-            # print("Fscore:", fscore)
+            print("Fscore:", fscore)
             fscores.append(fscore)
 
         # Esto va fuera del loop de folds
@@ -102,6 +106,8 @@ def cross_validation_for_LogisticReg(df_dev, possible_L2, folds: int = 5):
             best_L2 = L2
 
     # Graficar resultados
+    print("poss l2: ", possible_L2)
+    print("fscore: ", fscore_path)
     met2.graph_val_fscore(possible_L2, fscore_path)
     return best_L2
 
@@ -129,3 +135,63 @@ def undersampling(X, y):
     y_balanced = y_balanced[indices_to_keep]
 
     return X_balanced, y_balanced
+
+def cross_validation_for_RanfomForest(df_dev_, type, possible_hyp, params, folds = 10):
+    df_dev = df_dev_.copy()
+    best_fscore = -1
+    best_hyp = None
+    fscore_path = []
+    df_dev = df_dev.sample(frac=1, random_state=42).reset_index(drop=True)
+    fold_size = len(df_dev) // folds
+    for hyp in possible_hyp:
+        print(f"Testing {type}={hyp}")
+        fscores = []
+        for fold in range(folds):
+            # print(f"Testing {type} with fold {fold}")
+            start = fold * fold_size
+            end = (fold + 1) * fold_size if fold != folds - 1 else len(df_dev)
+            X_val_fold = df_dev.iloc[start:end]
+            X_train_fold = pd.concat([df_dev.iloc[:start], df_dev.iloc[end:]])
+
+            X_train, y_train, features = df_breakDown(X_train_fold, 'war_class')
+            X_val, y_val, _ = df_breakDown(X_val_fold, 'war_class')
+
+            # undersampling
+            X_train, y_train = undersampling(X_train, y_train)
+
+            # Normalización con media y std del training
+            X_train = normalization(X_train)
+            X_val = normalization(X_val, median(X_train), std(X_train))
+
+            # Entrenar y predecir
+            if type == "n_trees":
+                # print(f"Testing n_trees={hyp}")
+                model = mod2.RandomForest(X_train, y_train, features, hyp, params['max_depth'], params['perc_features'])
+            elif type == "max_depth":
+                # print(f"Testing max_depth={hyp}")
+                model = mod2.RandomForest(X_train, y_train, features, params['n_trees'], hyp, params['perc_features'])
+            elif type == "perc_features":
+                # print(f"Testing features_percent={hyp}")
+                model = mod2.RandomForest(X_train, y_train, features, params['n_trees'], params['max_depth'], hyp)
+            else:
+
+                raise ValueError("Invalid type. Choose from 'n_trees', 'max_depth', or 'features_percent'.")
+
+            predictions = model.predict(X_val)
+
+            # Calcular f-score
+            fscore = met2.f_score_multiclass(y_val, predictions)
+            fscores.append(fscore)
+            print("Fscore:", fscore)
+
+        avg_fscore = np.mean(fscores)
+        fscore_path.append(avg_fscore)
+        if avg_fscore > best_fscore:
+            best_fscore = avg_fscore
+            best_hyp = hyp
+    
+    print("hyp: ", possible_hyp)
+    print("fscore: ", fscore_path)
+    met2.graph_val_fscore(possible_hyp, fscore_path)
+    return best_hyp
+
