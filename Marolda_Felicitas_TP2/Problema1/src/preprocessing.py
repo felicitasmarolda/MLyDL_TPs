@@ -8,26 +8,19 @@ def prepare_df(df_):
     """Recibimos el dataframe original y devolvemos uno ya cambiado y procesado.
     Cambios:
         - hacemos binaria la columna de GeneticMutation
-        - con KNN obtenemos los ??? de CellType y los agregamos al df
         - hacemos one hot encoding de CellType
         - eliminamos GeneticMutation y CellType
-        - los nan los llenamos con la media de cada columna (si la columna es binaria la dropeamos)
+        - los nan los llenamos con la mediana de cada columna (si la columna es binaria la dropeamos)
+        - hacemos que los datos esten el rango especificado en su descripción
      """
     df = df_.copy()
 
     df['GeneticMutationBinary'] = (df['GeneticMutation'] == 'Presnt').astype(int)
     df = df.drop(columns=['GeneticMutation'], errors='ignore')
 
-    # hacemos one hot encoding para CellType (una columna binaria para cad tipo)
     encoded = pd.get_dummies(df['CellType'], prefix='CellType')
     encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']  # Asignás nombres fijos
     df = pd.concat([df.drop(columns=['CellType'], errors='ignore'), encoded], axis=1)
-    # print("columns: ", df.columns)
-
-    # convertimos a array y dividimos en X, y y las features
-    # guardamos la columna 'Diagnosis' en una lista
-    # diagnosis = df['Diagnosis'].values
-    # df = df.drop(columns=['Diagnosis'], errors='ignore')    # ahora el dataframe no tiene la columna de diagnosis
 
     df = df.dropna(subset=["GeneticMutationBinary", "Unknown", "Epthlial", "Mesnchymal"])
     columnas_a_rellenar = df.columns.difference(["GeneticMutationBinary","Unknown", "Epthlial", "Mesnchymal"])
@@ -39,41 +32,6 @@ def prepare_df(df_):
     
     df = fit_df_to_prespecified_bounds(df)
 
-    # features_names = list(df.columns)
-    # print("Features names:", features_names)
-
-    # # ahora ya no hay nans
-    # X, y, features = df_breakDown(df, y='CellTypeEncoded')
-    # y = np.array(y).ravel()
-    # X_with = []
-    # cellType_with = []
-    # X_without = []
-    # cellType_without = []
-    # diagnosis_with = []
-    # diagnosis_without = []      # agregamos los diagnosis para cuando hagamos el concatenate no se pierda el orde
-
-    # for i in range(len(y)):
-    #     if y[i] == 1:
-    #         cellType_with.append(y[i])
-    #         X_with.append(X[i])
-    #         diagnosis_with.append(diagnosis[i])
-    #     else:
-    #         cellType_without.append(y[i])
-    #         X_without.append(X[i])
-    #         diagnosis_without.append(diagnosis[i])
-    
-    # model_knn = mod.KNNClassifier(X_with, cellType_with, features, k=3)
-    # predictions_cell_type = model_knn.predict(X_without)
-
-    # # reunimos todo
-    # X = np.concatenate((X_with, X_without), axis=0)
-    # cellType = np.concatenate((cellType_with, predictions_cell_type), axis=0)
-    # diagnosis = np.concatenate((diagnosis_with, diagnosis_without), axis=0)
-    
-    # new_df = pd.DataFrame(X, columns=features)
-    # new_df['CellTypeEncoded'] = cellType
-    # new_df['Diagnosis'] = diagnosis
-    # print(df.describe())
     print(df.head(1))
     return df
     return new_df
@@ -125,21 +83,15 @@ def remove_outliers(X, bounds:dict):
     return X
     
 
-def get_bounds(X, sd = 3):
+def get_bounds(X, std_multiplier=3):
     bounds = {}
     for column in range(X.shape[1]):
         median = np.median(X[:, column])
         std = np.std(X[:, column])
-        lower_bound = median - sd * std
-        upper_bound = median + sd * std
+        lower_bound = median - std_multiplier * std
+        upper_bound = median + std_multiplier * std
         bounds[column] = (lower_bound, upper_bound)
     return bounds
-
-
-def knn_for_nans(X, k = 4):
-    """Recibimos un X df y devolvemos el mismo df pero donde hay nan hacemos knn y 
-    ponemos el promedio."""
-    # va a haber que dividir los datos devuela en 2, despues vemos eso
 
 def df_breakDown(df, y='y'):
     """Descompone un DataFrame en X, y y las features"""
@@ -161,7 +113,6 @@ def split_data(X: pd.DataFrame, validation_size: float = 0.2) -> tuple:
     X_train = X_.drop(X_val.index)
     return X_train, X_val
 
-
 def normalization(X, mu = None, sigma = None, bounds = None):
     if mu is None:
         mu = np.mean(X, axis=0)
@@ -171,6 +122,13 @@ def normalization(X, mu = None, sigma = None, bounds = None):
         bounds = get_bounds(X)
 
     X = remove_outliers(X, bounds)
+
+    # hacemos que no normalice las binarias
+    # for i in range(X.shape[1]):
+    #     if i in [0, 1, 2]:
+    #         X[:, i] = (X[:, i] - mu[i]) / sigma[i]
+    #     else:
+    #         X[:, i] = (X[:, i] - mu[i]) / sigma[i]
 
     X = (X - mu) / sigma
     return X
@@ -184,7 +142,7 @@ def std(X):
 
 
 
-def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size = 0.2):
+def cross_validation_for_L2(df_dev, possible_L2, folds: int = 10, validation_size = 0.2):
     best_fscore = -1
     best_L2 = None
     fscore_path = []
@@ -236,7 +194,7 @@ def cross_validation_for_L2(df_dev, possible_L2, folds: int = 5, validation_size
     met.graph_val_fscore(possible_L2, fscore_path)
     return best_L2
 
-def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5, validation_size = 0.2):
+def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 10, validation_size = 0.2):
 
     """X: data original
     y: labels
@@ -292,7 +250,7 @@ def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 5,
     met.graph_val_fscore(thresholds, fscore_path)
     return best_threshold
 
-def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, folds: int = 5, validation_size = 0.2):
+def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, folds: int = 10, validation_size = 0.2):
     """X: data original
     y: labels
     folds: cantidad de folds para cross validation
