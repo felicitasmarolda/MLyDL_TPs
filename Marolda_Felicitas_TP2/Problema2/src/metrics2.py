@@ -111,24 +111,36 @@ def curve_precision_recall(y_true, y_scores, thresholds_pr, label):
 
         precisions.append(precision)
         recalls.append(recall)
+    # print(f"precisions: {precisions}")
+    # print(f"recalls: {recalls}")
 
     return precisions, recalls
 
-def AUC_PR(y_true, y_proba, thresholds_pr):
+def AUC_PR_multiclass(y_true, y_proba, thresholds_pr):
     y_true = np.ravel(y_true)
     classes = np.unique(y_true)
     aucs = []
 
-    class_to_index = {label: idx for idx, label in enumerate(classes)}
-    for label in classes:
-        idx = class_to_index[label]
-        scores = y_proba[:, idx]
-        precisions, recalls = curve_precision_recall(y_true, scores, thresholds_pr, label)
+    classes = np.unique(y_true)
+    for i, label in enumerate(classes):
+        precisions, recalls = curve_precision_recall(y_true, y_proba[:, i], thresholds_pr, label)
+        # AUC PR usando la regla del trapecio
+        # Ordenar por recall ascendente
+        points = sorted(zip(recalls, precisions), key=lambda x: x[0])
+        recalls = [r for r, p in points]
+        precisions = [p for r, p in points]
+        
+        # Add points at the beginning/end if needed
+        if recalls[0] != 0:
+            recalls = [0] + recalls
+            precisions = [precisions[0]] + precisions
+        recalls, precisions = zip(*sorted(zip(recalls, precisions)))
+
         auc = np.trapz(precisions, recalls)
+
         aucs.append(auc)
 
     return np.mean(aucs)  # macro-promedio
-
 
 def curve_ROC_multiclass(y_true, y_proba, thresholds):
     y_true = np.ravel(y_true)
@@ -193,7 +205,7 @@ def get_metrics_multiclass(y_true, y_pred, y_proba, thresholds_roc, thresholds_p
     rec = recall_multiclass(y_true, y_pred)
     f1 = f_score_multiclass(y_true, y_pred)
     auc_roc = AUC_ROC_multiclass(y_true, y_proba, thresholds_roc)
-    auc_pr = AUC_PR(y_true, y_proba, thresholds_pr)
+    auc_pr = AUC_PR_multiclass(y_true, y_proba, thresholds_pr)
 
     # mostrar tabla con pandas
     metrics_df = pd.DataFrame({

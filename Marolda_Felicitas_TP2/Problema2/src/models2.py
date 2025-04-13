@@ -170,6 +170,7 @@ class RandomForest:
         self.max_depth = max_depth
         self.features_perc = features_perc
         self.data_perc = data_perc
+        self.classes = np.unique(self.y)
         self.fit = True
         self.trees = []
         if self.fit:
@@ -190,6 +191,22 @@ class RandomForest:
             tree = DecisionTree(X_sample, y_sample, selected_features, max_depth=self.max_depth)
             self.trees.append(tree)
     
+    def predict_proba(self, X):
+        n_samples = X.shape[0]
+        n_classes = len(self.classes)
+        proba = np.zeros((n_samples, n_classes))
+
+        for tree in self.trees:
+            preds = tree.predict(X)
+            for i in range(n_samples):
+                class_index = np.where(self.classes == preds[i])[0][0]
+                proba[i, class_index] += 1
+
+        proba /= self.n_trees
+        return proba
+
+
+
 
     def predict(self, X):
         predictions = np.zeros((X.shape[0], self.n_trees), dtype=int)
