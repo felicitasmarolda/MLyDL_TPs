@@ -406,3 +406,5 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true, y_proba1, y_pred1, y_p
     plt.tight_layout()
     plt.show()
 
+    return metrics_df
+
