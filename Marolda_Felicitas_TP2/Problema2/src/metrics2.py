@@ -124,13 +124,10 @@ def AUC_PR_multiclass(y_true, y_proba, thresholds_pr):
     classes = np.unique(y_true)
     for i, label in enumerate(classes):
         precisions, recalls = curve_precision_recall(y_true, y_proba[:, i], thresholds_pr, label)
-        # AUC PR usando la regla del trapecio
-        # Ordenar por recall ascendente
         points = sorted(zip(recalls, precisions), key=lambda x: x[0])
         recalls = [r for r, p in points]
         precisions = [p for r, p in points]
         
-        # Add points at the beginning/end if needed
         if recalls[0] != 0:
             recalls = [0] + recalls
             precisions = [precisions[0]] + precisions
@@ -140,7 +137,7 @@ def AUC_PR_multiclass(y_true, y_proba, thresholds_pr):
 
         aucs.append(auc)
 
-    return np.mean(aucs)  # macro-promedio
+    return np.mean(aucs)
 
 def curve_ROC_multiclass(y_true, y_proba, thresholds):
     y_true = np.ravel(y_true)
@@ -152,7 +149,7 @@ def curve_ROC_multiclass(y_true, y_proba, thresholds):
     for label in classes:
         binary_true = (y_true == label).astype(int)
         idx = class_to_index[label]
-        scores = y_proba[:, idx]  # ahora sí el índice es válido
+        scores = y_proba[:, idx] 
 
         TPRs = []
         FPRs = []
@@ -176,10 +173,9 @@ def AUC_ROC_multiclass(y_true, y_proba, thresholds):
         auc = np.trapz(TPRs, FPRs)
         aucs.append(auc)
 
-    return np.mean(aucs)  # macro-promedio
+    return np.mean(aucs)
 
 def graph_val_fscore(val_list, fscores):
-    """Graficamos el valor de L2 contra su fscore correspondiente"""
     plt.figure()
     plt.plot(val_list, fscores, marker='o')
     plt.xlabel('L2')
@@ -194,7 +190,7 @@ def graph_val_fscore(val_list, fscores):
 def get_metrics_multiclass(y_true, y_pred, y_proba, thresholds_roc, thresholds_pr):
     y_true = np.ravel(y_true)
     y_pred = np.ravel(y_pred)
-    y_proba = np.array(y_proba)  # debe ser (n_samples, n_classes)
+    y_proba = np.array(y_proba) 
 
     # metricas
     acc = accuracy(y_true, y_pred)
@@ -280,8 +276,6 @@ def get_numeric_metrics_multiclass(y_true_, y_pred_, y_proba, thresholds_roc, th
 
 
 def graph_all_for_3(metrics1, metrics2, metrics3, y_true_, y_proba1_, y_pred1_, y_proba2_, y_pred2_, y_proba3_, y_pred3_, thresholds_roc1, thresholds_pr1, thresholds_roc2, thresholds_pr2, thresholds_roc3, thresholds_pr3):
-    """Graficamos todas las métricas para los 3 modelos"""
-    # Crear un DataFrame para mostrar las métricas de los tres modelos juntos
     metrics_df = pd.DataFrame({
         "Metric": ["Accuracy", 
                    "Precision (Class 1)", "Precision (Class 2)", "Precision (Class 3)", 
@@ -313,7 +307,6 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true_, y_proba1_, y_pred1_, 
     y_proba2 = np.array(y_proba2_).copy()
     y_proba3 = np.array(y_proba3_).copy()
 
-    # Graficar la matriz de confusión para cada modelo
     plt.figure(figsize=(20, 6))
 
     plt.subplot(1, 3, 1)
@@ -353,17 +346,14 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true_, y_proba1_, y_pred1_, 
     plt.xticks(rotation=45)
     plt.yticks(rotation=0)
 
-    # agrandemos la letra
     plt.rcParams.update({
-        "font.size": 20,           # tamaño general de fuente
+        "font.size": 20,
     })
     plt.tight_layout()
     plt.show()
 
-    # Graficar las curvas ROC para cada modelo
     thresholds_roc = np.linspace(0, 1, 100)
 
-    # Graficar las curvas Precision-Recall para cada modelo
     plt.figure(figsize=(20, 6))
 
     plt.subplot(1, 2, 1)
@@ -386,7 +376,6 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true_, y_proba1_, y_pred1_, 
     plt.legend()
     plt.grid(True)
 
-    # Graficar las curvas ROC para cada modelo
     plt.subplot(1, 2, 2)
     for proba, thresholds_roc, name, color in zip(
         [y_proba1, y_proba2, y_proba3],
@@ -403,7 +392,7 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true_, y_proba1_, y_pred1_, 
     plt.legend()
     plt.grid(True)
     plt.rcParams.update({
-        "font.size": 20,           # tamaño general de fuente
+        "font.size": 20,
     })
     plt.tight_layout()
     plt.show()

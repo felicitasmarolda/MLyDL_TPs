@@ -6,7 +6,6 @@ import models2 as mod2
 import metrics2 as met2
 
 def prepare_df(df):
-    #sacamos los valores nulos
     df = df.dropna()
     return df
 
@@ -79,23 +78,18 @@ def cross_validation_for_LogisticReg(df_dev_, possible_L2, folds: int = 10):
             X_train, y_train, features = df_breakDown(X_train_fold, 'war_class')
             X_val, y_val, _ = df_breakDown(X_val_fold, 'war_class')
 
-            # undersampling
             X_train, y_train = undersampling(X_train, y_train)
 
-            # Normalización con media y std del training
             X_train = normalization(X_train)
             X_val = normalization(X_val, median(X_train), std(X_train))
 
-            # Entrenar y predecir
             model = mod2.Logistic_Regression_Multiclass(X_train, y_train, features, L2=L2, threshold=0.5)
             predictions = model.predict(X_val)
 
-            # Calcular f-score
             fscore = met2.f_score_multiclass(y_val, predictions)
             print("Fscore:", fscore)
             fscores.append(fscore)
 
-        # Esto va fuera del loop de folds
         avg_fscore = np.mean(fscores)
         print(f"Avg fscore for L2={L2}: {avg_fscore}")
         fscore_path.append(avg_fscore)
@@ -107,7 +101,6 @@ def cross_validation_for_LogisticReg(df_dev_, possible_L2, folds: int = 10):
             best_fscore = avg_fscore
             best_L2 = L2
 
-    # Graficar resultados
     print("poss l2: ", possible_L2)
     print("fscore: ", fscore_path)
     met2.graph_val_fscore(possible_L2, fscore_path)
@@ -117,22 +110,16 @@ def undersampling(X, y):
     X_balanced = X.copy()
     y_balanced = y.copy()
     
-    # Count occurrences of each class
     unique_classes, class_counts = np.unique(y_balanced, return_counts=True)
-    min_count = np.min(class_counts)  # Find the minority class count
+    min_count = np.min(class_counts)  
 
-    # Create a mask to keep track of indices to retain
     indices_to_keep = np.array([], dtype=int)
 
     for cls in unique_classes:
-        # Get indices of the current class
         class_indices = np.where(y_balanced == cls)[0]
-        # Randomly select min_count indices from the current class
         selected_indices = np.random.choice(class_indices, min_count, replace=False)
-        # Append selected indices to the mask
         indices_to_keep = np.concatenate((indices_to_keep, selected_indices))
 
-    # Subset X and y using the indices to keep
     X_balanced = X_balanced[indices_to_keep]
     y_balanced = y_balanced[indices_to_keep]
 
@@ -158,14 +145,11 @@ def cross_validation_for_RanfomForest(df_dev_, type, possible_hyp, params, folds
             X_train, y_train, features = df_breakDown(X_train_fold, 'war_class')
             X_val, y_val, _ = df_breakDown(X_val_fold, 'war_class')
 
-            # undersampling
             X_train, y_train = undersampling(X_train, y_train)
 
-            # Normalización con media y std del training
             X_train = normalization(X_train)
             X_val = normalization(X_val, median(X_train), std(X_train))
 
-            # Entrenar y predecir
             if type == "n_trees":
                 # print(f"Testing n_trees={hyp}")
                 model = mod2.RandomForest(X_train, y_train, features, hyp, params['max_depth'], params['perc_features'])
@@ -181,7 +165,6 @@ def cross_validation_for_RanfomForest(df_dev_, type, possible_hyp, params, folds
 
             predictions = model.predict(X_val)
 
-            # Calcular f-score
             fscore = met2.f_score_multiclass(y_val, predictions)
             fscores.append(fscore)
             print("Fscore:", fscore)
