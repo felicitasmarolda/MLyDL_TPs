@@ -329,7 +329,7 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true, y_proba1, y_pred1, y_p
     classes1 = np.unique(np.concatenate((y_true, y_pred1)))
     df_cm1 = pd.DataFrame(matriz1, index=classes1, columns=classes1)
     sns.heatmap(df_cm1, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
-    plt.title('Confusion Matrix - Model 1')
+    plt.title('Confusion Matrix - LDA')
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.xticks(rotation=45)
@@ -340,7 +340,7 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true, y_proba1, y_pred1, y_p
     classes2 = np.unique(np.concatenate((y_true, y_pred2)))
     df_cm2 = pd.DataFrame(matriz2, index=classes2, columns=classes2)
     sns.heatmap(df_cm2, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
-    plt.title('Confusion Matrix - Model 2')
+    plt.title('Confusion Matrix - Random Forest')
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.xticks(rotation=45)
@@ -351,12 +351,16 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true, y_proba1, y_pred1, y_p
     classes3 = np.unique(np.concatenate((y_true, y_pred3)))
     df_cm3 = pd.DataFrame(matriz3, index=classes3, columns=classes3)
     sns.heatmap(df_cm3, annot=True, fmt='d', cmap='Blues', cbar=False, square=True)
-    plt.title('Confusion Matrix - Model 3')
+    plt.title('Confusion Matrix - Logistic Regression')
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.xticks(rotation=45)
     plt.yticks(rotation=0)
 
+    # agrandemos la letra
+    plt.rcParams.update({
+        "font.size": 20,           # tamaño general de fuente
+    })
     plt.tight_layout()
     plt.show()
 
@@ -402,7 +406,9 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true, y_proba1, y_pred1, y_p
     plt.title('ROC Curves')
     plt.legend()
     plt.grid(True)
-
+    plt.rcParams.update({
+        "font.size": 20,           # tamaño general de fuente
+    })
     plt.tight_layout()
     plt.show()
 

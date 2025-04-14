@@ -200,7 +200,9 @@ def get_metrics(y_true, y_pred, y_proba, threshold=0.5):
     axes[2].set_ylabel('Precision')
     axes[2].set_title('Precision-Recall Curve')
     axes[2].grid(True)
-
+    plt.rcParams.update({
+        "font.size": 15,           # tamaño general de fuente
+    })
     plt.tight_layout()
     plt.show()
 
@@ -301,6 +303,9 @@ def graph_all_metrics_rebalanced(numeric_sr, numeric_us, numeric_od, numeric_smo
     axes[1].legend()
     axes[1].grid(True)
 
+    plt.rcParams.update({
+    "font.size": 25,           # tamaño general de fuente
+})
     plt.tight_layout()
     plt.show()
 

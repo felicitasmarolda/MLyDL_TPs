@@ -45,7 +45,8 @@ def split_data(X: pd.DataFrame, validation_size: float = 0.2) -> tuple:
     X_train = X_.drop(X_val.index)
     return X_train, X_val
 
-def df_breakDown(df, target_column='y'):
+def df_breakDown(df_, target_column='y'):
+    df = df_.copy()
     """Descompone un DataFrame en X, y y las features"""
     X = df.drop(columns=[target_column]).values  
     y = df[target_column].values  
