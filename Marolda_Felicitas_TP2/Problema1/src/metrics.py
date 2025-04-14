@@ -4,24 +4,17 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def confusion_matrix(y_true, y_pred):
-    """
-    Compute the confusion matrix and display it.
-    """
-    # print("y_true:", len(y_true))
-    # print("y_pred:", len(y_pred))
     TP = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 1)
     TN = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 0)
     FP = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 1)
     FN = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 0)
 
-    # print("TP:", TP, "TN:", TN, "FP:", FP, "FN:", FN)
     return TP, TN, FP, FN
 
 def draw_confusion_matrix(TP, TN, FP, FN):
     matrix = np.array([[TN, FP],
                        [FN, TP]])
 
-    # Plot
     plt.figure(figsize=(5, 4))
     sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues",
                 xticklabels=['Predicted Negative', 'Predicted Positive'],
@@ -46,9 +39,7 @@ def recall(y_true, y_pred):
 
 def f_score(y_true, y_pred, beta=1):
     p = precision(y_true, y_pred)
-    # print(f"Precision: {p}")
     r = recall(y_true, y_pred)
-    # print(f"Recall: {r}")
     return (1 + beta**2) * (p * r) / (beta**2 * p + r) if (beta**2 * p + r) > 0 else 0
 
 def curve_precision_recall(y_true, y_scores):
@@ -71,14 +62,11 @@ def draw_precision_recall_curve(y_true, y_scores):
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.title('Precision-Recall Curve')
-    # plt.xlim([0.0, 1.0])
-    # plt.ylim([0.0, 1.05])
     plt.grid(True)
     plt.show()
 
 def curve_ROC(y_true, y_scores):
-    # print(np.unique(y_scores))
-    thresholds = np.arange(0, 1.01, 0.1)  # mejor usar 1.01 para incluir 1.0 por seguridad
+    thresholds = np.arange(0, 1.01, 0.1)
     TPRs = []
     FPRs = []
 
@@ -92,7 +80,6 @@ def curve_ROC(y_true, y_scores):
         TPRs.append(TPR)
         FPRs.append(FPR)
     
-    # ordenar
     FPRs, TPRs = zip(*sorted(zip(FPRs, TPRs), key=lambda x: x[0]))
 
     return FPRs, TPRs
@@ -103,7 +90,7 @@ def draw_ROC_curve(y_true, y_scores):
     print("TPRs:", TPRs)
     plt.figure(figsize=(8, 6))
     plt.plot(FPRs, TPRs, marker='o', label='ROC Curve')
-    plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier')  # línea de referencia
+    plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier') 
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.title('ROC Curve')
@@ -122,7 +109,6 @@ def AUC_PR(y_true, y_scores):
     return auc
 
 def graph_val_fscore(val_list, fscores):
-    """Graficamos el valor de L2 contra su fscore correspondiente"""
     plt.figure()
     plt.plot(val_list, fscores, marker='o')
     plt.xlabel('L2')
@@ -136,7 +122,6 @@ def graph_val_fscore(val_list, fscores):
     
 def get_metrics(y_true, y_pred, y_proba, threshold=0.5):
 
-    # Aplanamos
     y_true = np.ravel(y_true)
     y_pred = np.ravel(y_pred)
     y_proba = np.ravel(y_proba)
@@ -201,7 +186,7 @@ def get_metrics(y_true, y_pred, y_proba, threshold=0.5):
     axes[2].set_title('Precision-Recall Curve')
     axes[2].grid(True)
     plt.rcParams.update({
-        "font.size": 15,           # tamaño general de fuente
+        "font.size": 15,
     })
     plt.tight_layout()
     plt.show()
@@ -209,10 +194,6 @@ def get_metrics(y_true, y_pred, y_proba, threshold=0.5):
     return metrics_df
 
 def get_numeric_metrics(y_true, y_scores, y_proba, threshold=0.5):
-    """
-    Calculate numeric metrics for the given true labels and predicted scores.
-    """
-    # Aplanamos
     y_true = np.ravel(y_true)
     y_scores = np.ravel(y_scores)
     y_pred = (y_scores >= threshold).astype(int)
@@ -228,10 +209,6 @@ def get_numeric_metrics(y_true, y_scores, y_proba, threshold=0.5):
     return [acc, prec, rec, f1, auc_roc, auc_pr]
 
 def get_metrics_for_graphing(y_true, y_scores, y_proba):
-    """
-    Get FPRs, TPRs, precisions, recalls.
-    """
-    # Aplanamos
     y_true = np.ravel(y_true)
     y_scores = np.ravel(y_scores)
 
@@ -242,9 +219,6 @@ def get_metrics_for_graphing(y_true, y_scores, y_proba):
     return [FPRs, TPRs, precisions, recalls]
 
 def graph_all_metrics_rebalanced(numeric_sr, numeric_us, numeric_od, numeric_smote, numeric_cr, graphing_sr, graphing_us, graphing_od, graphing_smote, graphing_cr):
-    """
-    Graficamos todas las metricas para los diferentes metodos de rebalancing
-    """
     # Convertir a numpy arrays
     numeric_sr = np.array(numeric_sr)
     numeric_us = np.array(numeric_us)

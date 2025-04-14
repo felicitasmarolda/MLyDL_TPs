@@ -1,6 +1,6 @@
 import numpy as np
 class Logistic_Regression:
-    def __init__(self, X, y, features, L2 = 0, threshold=0.5, max_iterations=1000, fit = True):
+    def __init__(self, X, y, features, L2 = 0, threshold=0.5, max_iterations=10000, fit = True):
         """
         threshold: threshold value to classify as class 1 (default 0.5)
         max_iter: max number of iterations for gradient descent

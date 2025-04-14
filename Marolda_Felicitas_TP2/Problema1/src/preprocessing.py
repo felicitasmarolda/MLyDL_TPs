@@ -19,13 +19,12 @@ def prepare_df(df_):
     df = df.drop(columns=['GeneticMutation'], errors='ignore')
 
     encoded = pd.get_dummies(df['CellType'], prefix='CellType')
-    encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']  # Asignás nombres fijos
+    encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']  
     df = pd.concat([df.drop(columns=['CellType'], errors='ignore'), encoded], axis=1)
 
     df = df.dropna(subset=["GeneticMutationBinary", "Unknown", "Epthlial", "Mesnchymal"])
     columnas_a_rellenar = df.columns.difference(["GeneticMutationBinary","Unknown", "Epthlial", "Mesnchymal"])
     df[columnas_a_rellenar] = df[columnas_a_rellenar].fillna(df[columnas_a_rellenar].median())
-    # pasamos a 0 y 1 las de recien
     df['Unknown'] = df['Unknown'].astype(int)
     df['Epthlial'] = df['Epthlial'].astype(int)
     df['Mesnchymal'] = df['Mesnchymal'].astype(int)
@@ -44,8 +43,8 @@ def prepare_df_test(df_test_, df_dev_):
     df_test_ = df_test_.drop(columns=['GeneticMutation'], errors='ignore')
 
     encoded = pd.get_dummies(df_test_['CellType'], prefix='CellType')
-    encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']  # Asignás nombres fijos
-    df_test_ = pd.concat([df_test_.drop(columns=['CellType'], errors='ignore'), encoded], axis=1)  # 🔥 Esta línea ya hace todo
+    encoded.columns = ['Unknown', 'Epthlial', 'Mesnchymal']  
+    df_test_ = pd.concat([df_test_.drop(columns=['CellType'], errors='ignore'), encoded], axis=1) 
     df_test_['Unknown'] = df_test_['Unknown'].astype(int)
     df_test_['Epthlial'] = df_test_['Epthlial'].astype(int)
     df_test_['Mesnchymal'] = df_test_['Mesnchymal'].astype(int)
@@ -60,7 +59,6 @@ def prepare_df_test(df_test_, df_dev_):
 
 def fit_df_to_prespecified_bounds(df):
     """Elimina los outliers de mi df"""
-    # Si un valor en CellAdhesion es mayor a 1 que sea 1 y si es menor a 0 que sea 0
     df.loc[df['CellAdhesion'] > 1, 'CellAdhesion'] = 1
     df.loc[df['CellAdhesion'] < 0, 'CellAdhesion'] = 0
 
@@ -94,7 +92,6 @@ def get_bounds(X, std_multiplier=3):
     return bounds
 
 def df_breakDown(df, y='y'):
-    """Descompone un DataFrame en X, y y las features"""
     target_column = y
     X = df.drop(columns=[target_column]).values  
     y = df[target_column].values  
@@ -105,9 +102,6 @@ def df_breakDown(df, y='y'):
     return X, y, features
 
 def split_data(X: pd.DataFrame, validation_size: float = 0.2) -> tuple:
-    """X: data original
-    validation_size: tamaño del conjunto de validación
-    Devuelve X_train, X_val"""
     X_ = X.copy()
     X_val = X_.sample(frac=validation_size, random_state=42)
     X_train = X_.drop(X_val.index)
@@ -123,18 +117,10 @@ def normalization(X, mu = None, sigma = None, bounds = None):
 
     X = remove_outliers(X, bounds)
 
-    # hacemos que no normalice las binarias
-    # for i in range(X.shape[1]):
-    #     if i in [0, 1, 2]:
-    #         X[:, i] = (X[:, i] - mu[i]) / sigma[i]
-    #     else:
-    #         X[:, i] = (X[:, i] - mu[i]) / sigma[i]
-
     X = (X - mu) / sigma
     return X
 
-def mean(X):
-    # ESTO USA LA MEDIANAAA NO LA MEDIAAA
+def median(X):
     return np.median(X, axis=0)
 
 def std(X):
@@ -151,7 +137,6 @@ def cross_validation_for_L2(df_dev, possible_L2, folds: int = 10, validation_siz
     fold_size = len(df_dev) // folds
 
     for L2 in possible_L2:
-        # print(f"Testing L2={L2}")
         fscores = []
         for fold in range(folds):
 
@@ -163,12 +148,11 @@ def cross_validation_for_L2(df_dev, possible_L2, folds: int = 10, validation_siz
             X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
             X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
-            # Normalización con media y std del training
             # print("Type: ", type(X_train), type(X_val))
             # print("shape: ", X_train.shape, X_val.shape)
             # print("mean: ", np.mean(X_train, axis = 0))
             X_train = normalization(X_train)
-            X_val = normalization(X_val, mean(X_train), std(X_train), get_bounds(X_train))
+            X_val = normalization(X_val, median(X_train), std(X_train), get_bounds(X_train))
 
             # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
@@ -222,20 +206,16 @@ def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 10
             X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
             X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
-            # Normalización con media y std del training
             X_train = normalization(X_train)
-            X_val = normalization(X_val, mean(X_train), std(X_train), get_bounds(X_train))
+            X_val = normalization(X_val, median(X_train), std(X_train), get_bounds(X_train))
 
-            # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=threshold)
             predictions = model.predict(X_val)
 
-            # Calcular f-score
             fscore = met.f_score(y_val, predictions)
             # print("Fscore:", fscore)
             fscores.append(fscore)
 
-        # Esto va fuera del loop de folds
         avg_fscore = np.mean(fscores)
         fscore_path.append(avg_fscore)
 
@@ -246,17 +226,10 @@ def cross_validation_for_threshold(df_dev, L2, thresholds: list, folds: int = 10
             best_fscore = avg_fscore
             best_threshold = threshold
 
-    # Graficar resultados
     met.graph_val_fscore(thresholds, fscore_path)
     return best_threshold
 
 def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, folds: int = 10, validation_size = 0.2):
-    """X: data original
-    y: labels
-    folds: cantidad de folds para cross validation
-    thresholds: lista de thresholds para probar
-    Prueba diferentes valores de L2 y del threshold para encontrar el óptimo de L2 usando fscore"""
-
     best_fscore = -1
     best_L2 = None
     fscore_path = []
@@ -277,10 +250,8 @@ def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, fold
             X_train, y_train, features = df_breakDown(X_train_fold, y='Diagnosis')
             X_val, y_val, _ = df_breakDown(X_val_fold, y='Diagnosis')
 
-            # rebalanceo
             if rebalanceo == 'undersampling':
                 X_train, y_train = undersampling(X_train, y_train)
-                # imprimimos la cantidad de 0 y 1 en y_train
                 # print("Undersampling")
             elif rebalanceo == 'oversampling mediante SMOTE':
                 X_train, y_train = oversampling_SMOTE(X_train, y_train)
@@ -292,20 +263,16 @@ def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, fold
                 X_train, y_train = cost_reweighting(X_train, y_train)
                 # print("Cost re-weighting")
             
-            # Normalización con media y std del training
             X_train = normalization(X_train)
-            X_val = normalization(X_val, mean(X_train), std(X_train), get_bounds(X_train))
+            X_val = normalization(X_val, median(X_train), std(X_train), get_bounds(X_train))
 
-            # Entrenar y predecir
             model = mod.Logistic_Regression(X_train, y_train, features, L2=L2, threshold=0.5)
             predictions = model.predict(X_val)
 
-            # Calcular f-score
             fscore = met.f_score(y_val, predictions)
             # print("Fscore:", fscore)
             fscores.append(fscore)
 
-        # Esto va fuera del loop de folds
         avg_fscore = np.mean(fscores)
         fscore_path.append(avg_fscore)
 
@@ -316,14 +283,10 @@ def cross_validation_for_imbalanced(df_dev, possible_L2, rebalanceo = None, fold
             best_fscore = avg_fscore
             best_L2 = L2
 
-    # Graficar resultados
     met.graph_val_fscore(possible_L2, fscore_path)
     return best_L2
 
 def undersampling(X, y):
-    """eliminar muestras de la clase mayoritaria de manera aleatoria
-    hasta que ambas clases tengan igual proporción."""
-    # Contamos la cantidad de datos de cada clasificacion
     X_balanced = X.copy()
     y_balanced = y.copy()
     minority = 0
@@ -334,7 +297,6 @@ def undersampling(X, y):
         else:
             mayority += 1
     
-    # Sacamos aleatoriamente datos de la clase mayoritaria
     while mayority > minority:
         index = np.random.randint(0, len(X_balanced))
         if y_balanced[index] == 0:
@@ -345,11 +307,8 @@ def undersampling(X, y):
     return X_balanced, y_balanced
 
 def oversampling_duplication(X, y):
-    """Oversampling mediante duplicación: duplicar muestras de la clase minoritaria
-    de manera aleatoria, hasta que que ambas clases tengan igual proporción"""
     X_balanced = X.copy()
     y_balanced = y.copy()
-    # Contamos la cantidad de datos de cada clasificacion
     minority = 0
     mayority = 0
     for i in y_balanced:
@@ -358,7 +317,6 @@ def oversampling_duplication(X, y):
         else:
             mayority += 1
     
-    # Sacamos aleatoriamente datos de la clase mayoritaria
     while mayority > minority:
         index = np.random.randint(0, len(X_balanced))
         if y_balanced[index] == 1:
@@ -380,18 +338,13 @@ def oversampling_SMOTE(X, y):
             mayority += 1
     
     while mayority > minority:
-        # Elegimos aleatoriamente un dato de la clase minoritaria
         index = np.random.randint(0, len(X_balanced))
         if y_balanced[index] == 1:
-            # Encontramos los KNN de ese dato
             distances = np.linalg.norm(X_balanced - X_balanced[index], axis=1)
             neighbors = np.argsort(distances)[1:4]
-            # Elegimos un vecino aleatoriamente
             neighbor_index = np.random.choice(neighbors)
-            # Generamos un nuevo dato entre el dato original y el vecino
             lambda_ = np.random.rand()
             new_sample = X_balanced[index] + lambda_ * (X_balanced[neighbor_index] - X_balanced[index])
-            # Agregamos el nuevo dato al conjunto de datos
             X_balanced = np.append(X_balanced, [new_sample], axis=0)
             y_balanced = np.append(y_balanced, [y_balanced[index]])
             minority += 1
@@ -402,27 +355,19 @@ def cost_reweighting(X, y):
 
     X_ = X.copy()
     y_ = y.copy()
-    # Contamos la cantidad de ejemplos de cada clase
     counts = y.value_counts()
-    # Encontramos la clase mayoritaria
     majority_class = counts.idxmax()
-    # Encontramos la cantidad de ejemplos de la clase minoritaria
     minority_count = counts.min()
-    # Hacemos oversampling de la clase minoritaria
     X_minority = X_[y_ != majority_class]
     y_minority = y_[y_ != majority_class]
     
-    # Calculamos las probabilidades a-priori
     p1 = len(y_minority) / len(y)
     p2 = len(X_) / len(y)
     
-    # Calculamos el factor de re-weighting
     C = p2 / p1
     
-    # Re-weighting los datos de la clase minoritaria
     X_minority_weighted = X_minority * C
     
-    # Concatenamos los datos ponderados con los de la clase mayoritaria
     X_balanced = pd.concat([X_[y_ == majority_class], X_minority_weighted])
     y_balanced = pd.concat([y_[y_ == majority_class], y_[y_ != majority_class]])
     
