@@ -41,11 +41,7 @@ class Logistic_Regression_Multiclass:
     
     def gradient(self, y_pred):
         y_pred = y_pred.reshape(-1, self.coef.shape[0])
-        # self.y = self.y.reshape(-1, 1)
         y_one_hot = np.zeros((self.y.size, self.coef.shape[0]))
-        # print("y_one_hot shape:", y_one_hot.shape)
-        # print("y_pred shape:", y_pred.shape)
-        # print("self.y shape:", self.y.shape)
         y_one_hot[np.arange(self.y.size), self.y.flatten()] = 1
         return (self.X.T @ (y_pred - y_one_hot)) / self.y.size + self.L2 * self.coef.T
     

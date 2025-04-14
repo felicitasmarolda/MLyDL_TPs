@@ -97,6 +97,7 @@ def cross_validation_for_LogisticReg(df_dev_, possible_L2, folds: int = 10):
 
         # Esto va fuera del loop de folds
         avg_fscore = np.mean(fscores)
+        print(f"Avg fscore for L2={L2}: {avg_fscore}")
         fscore_path.append(avg_fscore)
 
         # print(f"Avg fscore for L2={L2}: {avg_fscore}")
