@@ -265,9 +265,9 @@ def get_metrics_multiclass(y_true, y_pred, y_proba, thresholds_roc, thresholds_p
 
     return metrics_df
 
-def get_numeric_metrics_multiclass(y_true, y_pred, y_proba, thresholds_roc, thresholds_pr):
-    y_true = np.ravel(y_true)
-    y_pred = np.ravel(y_pred)
+def get_numeric_metrics_multiclass(y_true_, y_pred_, y_proba, thresholds_roc, thresholds_pr):
+    y_true = np.ravel(y_true_).copy()
+    y_pred = np.ravel(y_pred_).copy()
 
     acc = accuracy(y_true, y_pred)
     pr = precision_multiclass(y_true, y_pred)
@@ -279,7 +279,7 @@ def get_numeric_metrics_multiclass(y_true, y_pred, y_proba, thresholds_roc, thre
     return [acc, pr, rec, f1, auc_roc, auc_pr]
 
 
-def graph_all_for_3(metrics1, metrics2, metrics3, y_true, y_proba1, y_pred1, y_proba2, y_pred2, y_proba3, y_pred3, thresholds_roc1, thresholds_pr1, thresholds_roc2, thresholds_pr2, thresholds_roc3, thresholds_pr3):
+def graph_all_for_3(metrics1, metrics2, metrics3, y_true_, y_proba1_, y_pred1_, y_proba2_, y_pred2_, y_proba3_, y_pred3_, thresholds_roc1, thresholds_pr1, thresholds_roc2, thresholds_pr2, thresholds_roc3, thresholds_pr3):
     """Graficamos todas las métricas para los 3 modelos"""
     # Crear un DataFrame para mostrar las métricas de los tres modelos juntos
     metrics_df = pd.DataFrame({
@@ -305,17 +305,13 @@ def graph_all_for_3(metrics1, metrics2, metrics3, y_true, y_proba1, y_pred1, y_p
     print("===== MÉTRICAS DE LOS TRES MODELOS =====")
     print(metrics_df.to_string(index=False))
 
-    print(y_proba1.shape, y_pred1.shape)
-    print(y_proba2.shape, y_pred2.shape)
-    print(y_proba3.shape, y_pred3.shape)
-
-    y_true = np.ravel(y_true).copy()
-    y_pred1 = np.ravel(y_pred1).copy()
-    y_pred2 = np.ravel(y_pred2).copy()
-    y_pred3 = np.ravel(y_pred3).copy()
-    y_proba1 = np.array(y_proba1).copy()
-    y_proba2 = np.array(y_proba2).copy()
-    y_proba3 = np.array(y_proba3).copy()
+    y_true = np.ravel(y_true_).copy()
+    y_pred1 = np.ravel(y_pred1_).copy()
+    y_pred2 = np.ravel(y_pred2_).copy()
+    y_pred3 = np.ravel(y_pred3_).copy()
+    y_proba1 = np.array(y_proba1_).copy()
+    y_proba2 = np.array(y_proba2_).copy()
+    y_proba3 = np.array(y_proba3_).copy()
 
     # Graficar la matriz de confusión para cada modelo
     plt.figure(figsize=(20, 6))
