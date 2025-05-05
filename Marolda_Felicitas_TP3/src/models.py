@@ -3,10 +3,10 @@ import numpy as np
 class NeuralNetwork:
     def __init__(self, X, y, layers:int, activation_functions: list, nodes_in_layer: list, learning_rate: float = 0.01, epochs = 1000, weights_inicialies = 'He'):
         self.X = X
-        self.y = y
-        self.layers = layers
+        self.y = np.eye(np.max(y) + 1)[y]
+        self.layers = layers + 2
         self.activation_functions = activation_functions
-        self.nodes_in_layer = nodes_in_layer
+        self.nodes_in_layer = [X.shape[1]] + nodes_in_layer + [self.y.shape[1]]
         self.learning_rate = learning_rate
         self.weights_inicialies = weights_inicialies
         self.a = {}
@@ -22,6 +22,9 @@ class NeuralNetwork:
         self.weights = []
         self.biases = []
         self.initialize_weights()
+
+        # fit
+        self.fit()
 
     def initialize_weights(self):
         if self.weights_inicialies == 'He':
@@ -70,24 +73,31 @@ class NeuralNetwork:
         L = self.layers - 1
         self.delta[L] = self.cross_entropy_loss_derivative(y_pred)
 
-        for i in range(L - 1, 0, -1):
-            if self.activation_functions[i] == 'ReLU':
-                self.delta[i] = np.dot(self.delta[i + 1], self.weights[i].T) * self.ReLU_derivative(self.z[i])
-            else:
-                raise ValueError("Unsupported activation function for backpropagation")
+        for i in reversed(range(L)):
+            self.gradients_weights[i] = np.dot(self.a[i].T, self.delta[i + 1]) / m
+            self.gradients_biases[i] = np.sum(self.delta[i + 1], axis=0, keepdims=True) / m
+            
+            self.weights[i] -= self.learning_rate * self.gradients_weights[i]
+            self.biases[i] -= self.learning_rate * self.gradients_biases[i]
+            
+            if i != 0:
+                if self.activation_functions[i-1] == 'ReLU':
+                    dz = np.dot(self.delta[i + 1], self.weights[i].T)
+                    self.delta[i] =dz * self.ReLU_derivative(self.z[i-1])              
+                else:
+                    raise ValueError("Unsupported activation function for backpropagation")
         
-        for i in range(L):
-            self.gradients_weights[f'W{i}'] = np.dot(self.a[i].T, self.delta[i + 1]) / m
-            self.gradients_biases[f'b{i}'] = np.sum(self.delta[i + 1], axis=0, keepdims=True) / m
-            self.weights[i] -= self.learning_rate * self.gradients_weights[f'W{i}']
-            self.biases[i] -= self.learning_rate * self.gradients_biases[f'b{i}']
-
 
     def backpropagation(self) -> None:
         y_pred = self.forward_pass(self.a[0])
         self.backward_pass(y_pred)
 
-    def train()
+    def fit(self) -> None:
+        for epoch in range(self.epochs):
+            self.backpropagation()
+            if epoch % 100 == 0:
+                loss = self.cross_entropy_loss(self.a[self.layers - 1])
+                self.losses.append(loss)
+                print(f'Epoch {epoch}, Loss: {loss}')
 
 
-    
