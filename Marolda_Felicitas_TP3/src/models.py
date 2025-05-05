@@ -77,8 +77,9 @@ class NeuralNetwork:
             self.gradients_weights[i] = np.dot(self.a[i].T, self.delta[i + 1]) / m
             self.gradients_biases[i] = np.sum(self.delta[i + 1], axis=0, keepdims=True) / m
             
-            self.weights[i] -= self.learning_rate * self.gradients_weights[i]
-            self.biases[i] -= self.learning_rate * self.gradients_biases[i]
+            # self.weights[i] -= self.learning_rate * self.gradients_weights[i]
+            # self.biases[i] -= self.learning_rate * self.gradients_biases[i]
+            # PONER EN LA FUNCIÓN DE GRADIENTE DESCENDIENTE
             
             if i != 0:
                 if self.activation_functions[i-1] == 'ReLU':
