@@ -1,12 +1,14 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class NeuralNetwork:
-    def __init__(self, X, y, layers:int, activation_functions: list, nodes_in_layer: list, learning_rate: float = 0.01, epochs = 1000, weights_inicialies = 'He'):
+    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, learning_rate: float = 0.1, epochs = 1000, weights_inicialies = 'He'):
         self.X = X
         self.y = np.eye(np.max(y) + 1)[y]
-        self.layers = layers + 2
+        self.y_val = np.eye(np.max(y) + 1)[y_val]
         self.activation_functions = activation_functions
         self.nodes_in_layer = [X.shape[1]] + nodes_in_layer + [self.y.shape[1]]
+        self.layers = len(self.nodes_in_layer)
         self.learning_rate = learning_rate
         self.weights_inicialies = weights_inicialies
         self.a = {}
@@ -15,6 +17,7 @@ class NeuralNetwork:
         self.delta = {}
         self.epochs = epochs
         self.losses = []
+        self.losses_val = []
         self.gradients_weights = {}
         self.gradients_biases = {}
         
@@ -24,7 +27,7 @@ class NeuralNetwork:
         self.initialize_weights()
 
         # fit
-        self.fit()
+        self.fit(X_val, y_val)
 
     def initialize_weights(self):
         if self.weights_inicialies == 'He':
@@ -50,15 +53,18 @@ class NeuralNetwork:
     def ReLU_derivative(self, z)-> np.ndarray:
         return np.where(z > 0, 1, 0)
     
-    def cross_entropy_loss(self, y_pred):
+    def cross_entropy_loss(self, y_pred, y = None):
+        if y is None:
+            y = self.y
+        else:
+            y = np.eye(np.max(y) + 1)[y]
         m = self.X.shape[0]
-        loss = -np.sum(self.y * np.log(y_pred + 1e-8)) / m
+        loss = -np.sum(y * np.log(y_pred + 1e-8)) / m
         return loss
-    
-    def cross_entropy_loss_derivative(self, y_pred):
-        return (y_pred - self.y) / self.y.shape[0]
+    def cross_entropy_loss_derivative(self, y_pred, y_true):
+        return (y_pred - y_true)
 
-    def forward_pass(self, a) -> np.ndarray:
+    def forward_pass(self, a):
         for i in range(self.layers - 1):
             self.z[i] = np.dot(a, self.weights[i]) + self.biases[i]
             if self.activation_functions[i] == 'ReLU':
@@ -71,16 +77,12 @@ class NeuralNetwork:
     def backward_pass(self, y_pred) -> None:
         m = self.X.shape[0]
         L = self.layers - 1
-        self.delta[L] = self.cross_entropy_loss_derivative(y_pred)
+        self.delta[L] = self.cross_entropy_loss_derivative(y_pred, self.y)
 
         for i in reversed(range(L)):
             self.gradients_weights[i] = np.dot(self.a[i].T, self.delta[i + 1]) / m
             self.gradients_biases[i] = np.sum(self.delta[i + 1], axis=0, keepdims=True) / m
-            
-            # self.weights[i] -= self.learning_rate * self.gradients_weights[i]
-            # self.biases[i] -= self.learning_rate * self.gradients_biases[i]
-            # PONER EN LA FUNCIÓN DE GRADIENTE DESCENDIENTE
-            
+
             if i != 0:
                 if self.activation_functions[i-1] == 'ReLU':
                     dz = np.dot(self.delta[i + 1], self.weights[i].T)
@@ -88,17 +90,43 @@ class NeuralNetwork:
                 else:
                     raise ValueError("Unsupported activation function for backpropagation")
         
+    def gradient_descent(self) -> None:
+        for i in range(self.layers - 1):
+            self.weights[i] -= self.learning_rate * self.gradients_weights[i]
+            self.biases[i] -= self.learning_rate * self.gradients_biases[i]
 
     def backpropagation(self) -> None:
         y_pred = self.forward_pass(self.a[0])
         self.backward_pass(y_pred)
 
-    def fit(self) -> None:
+    def fit(self, X_val, y_val) -> None:
         for epoch in range(self.epochs):
             self.backpropagation()
-            if epoch % 100 == 0:
-                loss = self.cross_entropy_loss(self.a[self.layers - 1])
-                self.losses.append(loss)
-                print(f'Epoch {epoch}, Loss: {loss}')
+            self.gradient_descent()
+            y_pred = self.forward_pass(self.X)
+            loss = self.cross_entropy_loss(y_pred)
+            self.losses.append(loss)
+            
+            if X_val is not None and y_val is not None:
+                y_val_pred = self.forward_pass(X_val)
+                val_loss = self.cross_entropy_loss(y_val_pred, y_val)
+                self.losses_val.append(val_loss)
+
+            if epoch % 10 == 0:
+                print(f"Epoch {epoch}, Loss: {loss}")
+                print(f"loss val: {val_loss}")
+            
+        # graph the losses
+        self.graph_losses()
+
+    def graph_losses(self):
+        plt.plot(self.losses, label='Train Loss')
+        if self.losses_val:
+            plt.plot(self.losses_val, label='Validation Loss')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.title('Loss vs Epochs')
+        plt.legend()
+        plt.show()
 
 
