@@ -73,14 +73,30 @@ class NeuralNetwork:
     def ReLU_derivative(self, z)-> np.ndarray:
         return np.where(z > 0, 1, 0)
     
-    def cross_entropy_loss(self, y_pred, y = None):
+    # def cross_entropy_loss(self, y_pred, y = None):
+    #     if y is None:
+    #         y = self.y
+    #     else:
+    #         y = np.eye(np.max(y) + 1)[y]
+    #     m = self.X.shape[0]
+    #     loss = -np.sum(y * np.log(y_pred + 1e-8)) / m
+    #     return loss
+    
+    def cross_entropy_loss(self, y_pred, y=None):
         if y is None:
             y = self.y
         else:
             y = np.eye(np.max(y) + 1)[y]
         m = self.X.shape[0]
         loss = -np.sum(y * np.log(y_pred + 1e-8)) / m
+
+        if self.mejora.get("L2", False):
+            lambda_ = self.mejora["L2"]
+            l2_term = (lambda_ / (2 * m)) * sum(np.sum(w**2) for w in self.weights)
+            loss += l2_term
+
         return loss
+
     
     def cross_entropy_loss_derivative(self, y_pred, y_true):
         return (y_pred - y_true)
@@ -103,6 +119,10 @@ class NeuralNetwork:
         for i in reversed(range(L)):
             self.gradients_weights[i] = np.dot(self.a[i].T, self.delta[i + 1]) / m
             self.gradients_biases[i] = np.sum(self.delta[i + 1], axis=0, keepdims=True) / m
+
+            if self.mejora.get("L2", False):
+                lambda_ = self.mejora["L2"]
+                self.gradients_weights[i] += (lambda_ / m) * self.weights[i]
 
             if i != 0:
                 if self.activation_functions[i-1] == 'ReLU':
@@ -137,7 +157,7 @@ class NeuralNetwork:
                 self.gradient_descent_adam()
             else:
                 self.gradient_descent()
-                
+
             y_pred = self.forward_pass(self.X)
             loss = self.cross_entropy_loss(y_pred)
             self.losses.append(loss)
