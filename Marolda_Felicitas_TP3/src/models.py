@@ -42,6 +42,8 @@ class NeuralNetwork:
             self.m_t_biases = [np.zeros_like(b) for b in self.biases]
             self.v_t_biases = [np.zeros_like(b) for b in self.biases]
             self.t = 0
+        elif self.mejora.get("Early stopping", False):
+            self.early_stopping_count = self.mejora["Early stopping"]
 
         # fit
         if self.mejora.get("Mini batch stochastic gradient descent", False):
@@ -72,15 +74,6 @@ class NeuralNetwork:
     
     def ReLU_derivative(self, z)-> np.ndarray:
         return np.where(z > 0, 1, 0)
-    
-    # def cross_entropy_loss(self, y_pred, y = None):
-    #     if y is None:
-    #         y = self.y
-    #     else:
-    #         y = np.eye(np.max(y) + 1)[y]
-    #     m = self.X.shape[0]
-    #     loss = -np.sum(y * np.log(y_pred + 1e-8)) / m
-    #     return loss
     
     def cross_entropy_loss(self, y_pred, y=None):
         if y is None:
@@ -166,6 +159,22 @@ class NeuralNetwork:
                 y_val_pred = self.forward_pass(X_val)
                 val_loss = self.cross_entropy_loss(y_val_pred, y_val)
                 self.losses_val.append(val_loss)
+
+                if self.mejora.get("Early stopping", False):
+                    # inicializa si no está
+                    if not hasattr(self, "best_val_loss"):
+                        self.best_val_loss = val_loss
+                        self.early_stopping_counter = 0
+                    elif val_loss < self.best_val_loss - 1e-4:  # margen mínimo de mejora
+                        self.best_val_loss = val_loss
+                        self.early_stopping_counter = 0
+                    else:
+                        self.early_stopping_counter += 1
+                        if self.early_stopping_counter >= self.mejora["Early stopping"]:
+                            print(f"Early stopping triggered at epoch {epoch}. Best val loss: {self.best_val_loss:.4f}")
+                            break
+
+
 
             if epoch % 10 == 0:
                 print(f"Epoch {epoch}, Loss: {loss}")
