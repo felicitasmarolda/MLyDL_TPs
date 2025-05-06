@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NeuralNetwork:
-    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, learning_rate: float = 0.1, epochs = 1000, weights_inicialies = 'He'):
+    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, mejora = "nada", learning_rate: float = 0.1, epochs = 1000, weights_inicialies = 'He'):
         self.X = X
         self.y = np.eye(np.max(y) + 1)[y]
         self.y_val = np.eye(np.max(y) + 1)[y_val]
@@ -11,6 +11,7 @@ class NeuralNetwork:
         self.layers = len(self.nodes_in_layer)
         self.learning_rate = learning_rate
         self.weights_inicialies = weights_inicialies
+        self.mejora = mejora
         self.a = {}
         self.a[0] = self.X
         self.z = {}
@@ -27,7 +28,10 @@ class NeuralNetwork:
         self.initialize_weights()
 
         # fit
-        self.fit(X_val, y_val)
+        if mejora == "Mini batch stochastic gradient descent":
+            self.fit_mini_batch(X_val, y_val)
+        else:
+            self.fit(X_val, y_val)
 
     def initialize_weights(self):
         if self.weights_inicialies == 'He':
@@ -74,10 +78,10 @@ class NeuralNetwork:
             self.a[i+1] = a
         return a
     
-    def backward_pass(self, y_pred) -> None:
-        m = self.X.shape[0]
+    def backward_pass(self, y_pred, y, X) -> None:
+        m = X.shape[0]
         L = self.layers - 1
-        self.delta[L] = self.cross_entropy_loss_derivative(y_pred, self.y)
+        self.delta[L] = self.cross_entropy_loss_derivative(y_pred, y)
 
         for i in reversed(range(L)):
             self.gradients_weights[i] = np.dot(self.a[i].T, self.delta[i + 1]) / m
@@ -95,14 +99,25 @@ class NeuralNetwork:
             self.weights[i] -= self.learning_rate * self.gradients_weights[i]
             self.biases[i] -= self.learning_rate * self.gradients_biases[i]
 
-    def backpropagation(self) -> None:
+    def backpropagation(self, y = None, X = None) -> None:
+        if y is None:
+            y = self.y
+        if X is None:
+            X = self.X
+        self.a[0] = X
+
         y_pred = self.forward_pass(self.a[0])
-        self.backward_pass(y_pred)
+        self.backward_pass(y_pred, y, X)
 
     def fit(self, X_val, y_val) -> None:
         for epoch in range(self.epochs):
             self.backpropagation()
-            self.gradient_descent()
+
+            # gradient descent mejora
+            if self.mejora == "Rate scheduling lineal":
+                self.gradient_descent_rate_scheduling_lineal(epoch)
+            else:
+                self.gradient_descent()
             y_pred = self.forward_pass(self.X)
             loss = self.cross_entropy_loss(y_pred)
             self.losses.append(loss)
@@ -128,5 +143,47 @@ class NeuralNetwork:
         plt.title('Loss vs Epochs')
         plt.legend()
         plt.show()
+
+
+    # mejoras
+    def gradient_descent_rate_scheduling_lineal(self, epoch):
+        lr_init = self.learning_rate
+        lr_min = 0.001  # tasa mínima
+        decay_ratio = epoch / self.epochs
+        current_lr = max(lr_init * (1 - decay_ratio), lr_min)
+
+        for i in range(self.layers - 1):
+            self.weights[i] -= current_lr * self.gradients_weights[i]
+            self.biases[i] -= current_lr * self.gradients_biases[i]
+
+    def fit_mini_batch(self, X_val, y_val, batch_size = 32) -> None:
+        for epoch in range(self.epochs):
+            
+            # mezcla los datos
+            indices = np.arange(self.X.shape[0])
+            np.random.shuffle(indices)
+            X_shuffled = self.X[indices]
+            y_shuffled = self.y[indices]
+
+            # dividir en batches
+            for i in range(0, len(X_shuffled), batch_size):
+
+                # definimos el batch
+                X_batch = X_shuffled[i:i + batch_size]
+                y_batch = y_shuffled[i:i + batch_size]
+
+                self.a[0] = X_batch     
+                self.backpropagation(y_batch, X_batch)
+                self.gradient_descent()
+
+            # la loss con todo X
+            y_pred = self.forward_pass(self.X)
+            loss = self.cross_entropy_loss(y_pred)
+            self.losses.append(loss)
+
+            if X_val is not None and y_val is not None:
+                y_val_pred = self.forward_pass(X_val)
+                val_loss = self.cross_entropy_loss(y_val_pred, y_val)
+                self.losses_val.append(val_loss)
 
 
