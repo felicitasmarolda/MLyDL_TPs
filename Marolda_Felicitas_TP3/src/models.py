@@ -42,8 +42,13 @@ class NeuralNetwork:
             self.m_t_biases = [np.zeros_like(b) for b in self.biases]
             self.v_t_biases = [np.zeros_like(b) for b in self.biases]
             self.t = 0
-        elif self.mejora.get("Early stopping", False):
+        
+        if self.mejora.get("Early stopping", False):
             self.early_stopping_count = self.mejora["Early stopping"]
+        
+        if self.mejora.get("Dropout", False):
+            self.dropout_rates = [self.mejora["Dropout"]]* (self.layers - 2)
+            self.dropout_masks = {}
 
         # fit
         if self.mejora.get("Mini batch stochastic gradient descent", False):
@@ -94,15 +99,47 @@ class NeuralNetwork:
     def cross_entropy_loss_derivative(self, y_pred, y_true):
         return (y_pred - y_true)
 
-    def forward_pass(self, a):
+    # def forward_pass(self, a, training = True):
+    #     for i in range(self.layers - 1):
+    #         self.z[i] = np.dot(a, self.weights[i]) + self.biases[i]
+    #         if self.activation_functions[i] == 'ReLU':
+    #             a = self.ReLU(self.z[i])
+    #         elif self.activation_functions[i] == 'softmax':
+    #             a = self.softmax(self.z[i])
+            
+    #         if training and self.mejora.get("Dropout", False) and i < self.layers - 2:
+    #             rate = self.dropout_rates[i]
+    #             mask = (np.random.rand(*a.shape) > rate).astype(float)
+    #             a *= mask
+    #             a /= (1.0 - rate)
+    #             self.dropout_masks[i] = mask
+
+    #         self.a[i+1] = a
+    #     return a
+    def forward_pass(self, a, training=True):
+        dropout_masks = {}
         for i in range(self.layers - 1):
             self.z[i] = np.dot(a, self.weights[i]) + self.biases[i]
+            
             if self.activation_functions[i] == 'ReLU':
                 a = self.ReLU(self.z[i])
             elif self.activation_functions[i] == 'softmax':
                 a = self.softmax(self.z[i])
-            self.a[i+1] = a
+            
+            # Dropout solo si estamos entrenando
+            if training and self.mejora.get("Dropout", False) and i < self.layers - 2:
+                rate = self.dropout_rates[i]
+                mask = (np.random.rand(*a.shape) > rate).astype(float)
+                a *= mask
+                a /= (1.0 - rate)
+                dropout_masks[i] = (mask, rate)
+
+            self.a[i + 1] = a
+        
+        # si querés usar dropout_masks para el backward, devolvelos como segundo output
+        self.last_dropout_masks = dropout_masks  # <- opcional, solo si querés usarlos
         return a
+
     
     def backward_pass(self, y_pred, y, X) -> None:
         m = X.shape[0]
@@ -120,6 +157,14 @@ class NeuralNetwork:
             if i != 0:
                 if self.activation_functions[i-1] == 'ReLU':
                     dz = np.dot(self.delta[i + 1], self.weights[i].T)
+
+                    if self.mejora.get("Dropout", False):
+                        mask_tuple = self.last_dropout_masks.get(i - 1, None)
+                        if mask_tuple is not None:
+                            mask, rate = mask_tuple
+                            dz *= mask
+                            dz /= (1.0 - rate)
+
                     self.delta[i] =dz * self.ReLU_derivative(self.z[i-1])              
                 else:
                     raise ValueError("Unsupported activation function for backpropagation")
