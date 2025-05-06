@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NeuralNetwork:
-    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, mejora = "nada", learning_rate: float = 0.1, epochs = 1000, weights_inicialies = 'He'):
+    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, mejora = None, learning_rate: float = 0.1, epochs = 1000, weights_inicialies = 'He'):
         self.X = X
         self.y = np.eye(np.max(y) + 1)[y]
         self.y_val = np.eye(np.max(y) + 1)[y_val]
@@ -11,7 +11,6 @@ class NeuralNetwork:
         self.layers = len(self.nodes_in_layer)
         self.learning_rate = learning_rate
         self.weights_inicialies = weights_inicialies
-        self.mejora = mejora
         self.a = {}
         self.a[0] = self.X
         self.z = {}
@@ -27,7 +26,13 @@ class NeuralNetwork:
         self.biases = []
         self.initialize_weights()
 
-        if mejora == "ADAM":
+        # mejoras
+        if mejora == None:
+            self.mejora = {}
+        else:
+            self.mejora = mejora
+
+        if self.mejora.get("ADAM", False):
             # Inicialización para Adam
             self.beta1 = 0.9  # Factor de decaimiento para el primer momento
             self.beta2 = 0.999  # Factor de decaimiento para el segundo momento
@@ -39,7 +44,7 @@ class NeuralNetwork:
             self.t = 0
 
         # fit
-        if mejora == "Mini batch stochastic gradient descent":
+        if self.mejora.get("Mini batch stochastic gradient descent", False):
             self.fit_mini_batch(X_val, y_val)
         else:
             self.fit(X_val, y_val)
@@ -126,12 +131,13 @@ class NeuralNetwork:
             self.backpropagation()
 
             # gradient descent mejora
-            if self.mejora == "Rate scheduling lineal":
+            if self.mejora.get("Rate scheduling lineal", False):
                 self.gradient_descent_rate_scheduling_lineal(epoch)
-            elif self.mejora == "ADAM":
+            elif self.mejora.get("ADAM", False):
                 self.gradient_descent_adam()
             else:
                 self.gradient_descent()
+                
             y_pred = self.forward_pass(self.X)
             loss = self.cross_entropy_loss(y_pred)
             self.losses.append(loss)
@@ -216,7 +222,12 @@ class NeuralNetwork:
 
                 self.a[0] = X_batch     
                 self.backpropagation(y_batch, X_batch)
-                self.gradient_descent()
+                if self.mejora.get("Rate scheduling lineal", False):
+                    self.gradient_descent_rate_scheduling_lineal(epoch)
+                elif self.mejora.get("ADAM", False):
+                    self.gradient_descent_adam()
+                else:
+                    self.gradient_descent()
 
             # la loss con todo X
             y_pred = self.forward_pass(self.X)
