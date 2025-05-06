@@ -21,11 +21,22 @@ class NeuralNetwork:
         self.losses_val = []
         self.gradients_weights = {}
         self.gradients_biases = {}
-        
+
         # Initialize weights and biases
         self.weights = []
         self.biases = []
         self.initialize_weights()
+
+        if mejora == "ADAM":
+            # Inicialización para Adam
+            self.beta1 = 0.9  # Factor de decaimiento para el primer momento
+            self.beta2 = 0.999  # Factor de decaimiento para el segundo momento
+            self.epsilon = 1e-8
+            self.m_t_weights = [np.zeros_like(w) for w in self.weights]
+            self.v_t_weights = [np.zeros_like(w) for w in self.weights]
+            self.m_t_biases = [np.zeros_like(b) for b in self.biases]
+            self.v_t_biases = [np.zeros_like(b) for b in self.biases]
+            self.t = 0
 
         # fit
         if mejora == "Mini batch stochastic gradient descent":
@@ -65,6 +76,7 @@ class NeuralNetwork:
         m = self.X.shape[0]
         loss = -np.sum(y * np.log(y_pred + 1e-8)) / m
         return loss
+    
     def cross_entropy_loss_derivative(self, y_pred, y_true):
         return (y_pred - y_true)
 
@@ -116,6 +128,8 @@ class NeuralNetwork:
             # gradient descent mejora
             if self.mejora == "Rate scheduling lineal":
                 self.gradient_descent_rate_scheduling_lineal(epoch)
+            elif self.mejora == "ADAM":
+                self.gradient_descent_adam()
             else:
                 self.gradient_descent()
             y_pred = self.forward_pass(self.X)
@@ -155,6 +169,34 @@ class NeuralNetwork:
         for i in range(self.layers - 1):
             self.weights[i] -= current_lr * self.gradients_weights[i]
             self.biases[i] -= current_lr * self.gradients_biases[i]
+
+    def gradient_descent_adam(self):
+        self.t += 1  # Incrementamos el contador de pasos
+        
+        for i in range(self.layers - 1):
+            # --- Actualización para pesos ---
+            # 1. Calcular momentos (media y varianza)
+            self.m_t_weights[i] = self.beta1 * self.m_t_weights[i] + (1 - self.beta1) * self.gradients_weights[i]
+            self.v_t_weights[i] = self.beta2 * self.v_t_weights[i] + (1 - self.beta2) * (self.gradients_weights[i]**2)
+            
+            # 2. Corrección de bias (para contrarrestar la inicialización en 0)
+            m_hat_w = self.m_t_weights[i] / (1 - self.beta1**self.t)
+            v_hat_w = self.v_t_weights[i] / (1 - self.beta2**self.t)
+            
+            # 3. Actualización de pesos con tasa adaptativa
+            self.weights[i] -= self.learning_rate * m_hat_w / (np.sqrt(v_hat_w) + self.epsilon)
+            
+            # --- Actualización para biases ---
+            # 1. Calcular momentos (media y varianza)
+            self.m_t_biases[i] = self.beta1 * self.m_t_biases[i] + (1 - self.beta1) * self.gradients_biases[i]
+            self.v_t_biases[i] = self.beta2 * self.v_t_biases[i] + (1 - self.beta2) * (self.gradients_biases[i]**2)
+            
+            # 2. Corrección de bias
+            m_hat_b = self.m_t_biases[i] / (1 - self.beta1**self.t)
+            v_hat_b = self.v_t_biases[i] / (1 - self.beta2**self.t)
+            
+            # 3. Actualización de biases con tasa adaptativa
+            self.biases[i] -= self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
 
     def fit_mini_batch(self, X_val, y_val, batch_size = 32) -> None:
         for epoch in range(self.epochs):
