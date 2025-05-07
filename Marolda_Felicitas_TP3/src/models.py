@@ -32,6 +32,9 @@ class NeuralNetwork:
         else:
             self.mejora = mejora
 
+        if self.mejora.get("Rate scheduling lineal", False):
+            self.lr_min = self.mejora["Rate scheduling lineal"]
+        
         if self.mejora.get("ADAM", False):
             # Inicialización para Adam
             self.beta1 = 0.9  # Factor de decaimiento para el primer momento
@@ -50,6 +53,14 @@ class NeuralNetwork:
             self.dropout_rates = [self.mejora["Dropout"]]* (self.layers - 2)
             self.dropout_masks = {}
 
+        if self.mejora.get("Batch normalization", False):
+            self.gamma = [np.ones((1, self.nodes_in_layer[i + 1])) for i in range(self.layers - 2)]
+            self.beta = [np.zeros((1, self.nodes_in_layer[i + 1])) for i in range(self.layers - 2)]
+            self.running_mean = [np.zeros((1, self.nodes_in_layer[i + 1])) for i in range(self.layers - 2)]
+            self.running_var = [np.ones((1, self.nodes_in_layer[i + 1])) for i in range(self.layers - 2)]
+            self.momentum = self.mejora["Batch normalization"]  # Factor de momentum para la actualización de estadísticas en Batch Normalization
+            self.gradients_gamma = []
+            self.gradients_beta = []
         # fit
         if self.mejora.get("Mini batch stochastic gradient descent", False):
             self.fit_mini_batch(X_val, y_val)
@@ -121,6 +132,9 @@ class NeuralNetwork:
         for i in range(self.layers - 1):
             self.z[i] = np.dot(a, self.weights[i]) + self.biases[i]
             
+            if self.mejora.get("Batch normalization", False) and i < self.layers - 2:
+                self.z[i] = self.batch_norm_forward(self.z[i], i, training)
+
             if self.activation_functions[i] == 'ReLU':
                 a = self.ReLU(self.z[i])
             elif self.activation_functions[i] == 'softmax':
@@ -165,14 +179,25 @@ class NeuralNetwork:
                             dz *= mask
                             dz /= (1.0 - rate)
 
+                    if self.mejora.get("Batch normalization", False) and i - 1 < len(self.gamma):
+                        dz, dgamma, dbeta = self.batch_norm_backward(dz, self.z[i - 1], i - 1)
+                        # Guardar gradientes para actualizar gamma y beta si querés
+                        self.gradients_gamma[i - 1] = dgamma
+                        self.gradients_beta[i - 1] = dbeta
+
                     self.delta[i] =dz * self.ReLU_derivative(self.z[i-1])              
                 else:
                     raise ValueError("Unsupported activation function for backpropagation")
         
     def gradient_descent(self) -> None:
         for i in range(self.layers - 1):
+            if self.mejora.get("Batch normalization", False) and i < len(self.gamma):
+                self.gamma[i] -= self.learning_rate * self.gradients_gamma[i]
+                self.beta[i] -= self.learning_rate * self.gradients_beta[i]
             self.weights[i] -= self.learning_rate * self.gradients_weights[i]
             self.biases[i] -= self.learning_rate * self.gradients_biases[i]
+
+
 
     def backpropagation(self, y = None, X = None) -> None:
         if y is None:
@@ -242,7 +267,7 @@ class NeuralNetwork:
     # mejoras
     def gradient_descent_rate_scheduling_lineal(self, epoch):
         lr_init = self.learning_rate
-        lr_min = 0.001  # tasa mínima
+        lr_min = self.lr_min # tasa mínima
         decay_ratio = epoch / self.epochs
         current_lr = max(lr_init * (1 - decay_ratio), lr_min)
 
@@ -278,7 +303,8 @@ class NeuralNetwork:
             # 3. Actualización de biases con tasa adaptativa
             self.biases[i] -= self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
 
-    def fit_mini_batch(self, X_val, y_val, batch_size = 32) -> None:
+    def fit_mini_batch(self, X_val, y_val) -> None:
+        batch_size = self.mejora.get("Mini batch stochastic gradient descent")
         for epoch in range(self.epochs):
             
             # mezcla los datos
@@ -313,4 +339,43 @@ class NeuralNetwork:
                 val_loss = self.cross_entropy_loss(y_val_pred, y_val)
                 self.losses_val.append(val_loss)
 
+            if epoch % 10 == 0:
+                print(f"Epoch {epoch}, Loss: {loss}")
+                print(f"loss val: {val_loss}")
 
+        self.graph_losses()
+
+    def batch_norm_forward(self, z, layer_index, training=True):
+        if training:
+            mean = np.mean(z, axis=0, keepdims=True)
+            var = np.var(z, axis=0, keepdims=True)
+            z_norm = (z - mean) / np.sqrt(var + 1e-8)
+            # Update running stats
+            self.running_mean[layer_index] = self.momentum * self.running_mean[layer_index] + (1 - self.momentum) * mean
+            self.running_var[layer_index] = self.momentum * self.running_var[layer_index] + (1 - self.momentum) * var
+        else:
+            # Use running stats for inference
+            mean = self.running_mean[layer_index]
+            var = self.running_var[layer_index]
+            z_norm = (z - mean) / np.sqrt(var + 1e-8)
+        out = self.gamma[layer_index] * z_norm + self.beta[layer_index]
+        return out
+    
+    def batch_norm_backward(self, dz, z, layer_index):
+        m = dz.shape[0]
+        mean = np.mean(z, axis=0, keepdims=True)
+        var = np.var(z, axis=0, keepdims=True)
+        std_inv = 1. / np.sqrt(var + 1e-8)
+
+        z_norm = (z - mean) * std_inv
+
+        dgamma = np.sum(dz * z_norm, axis=0, keepdims=True)
+        dbeta = np.sum(dz, axis=0, keepdims=True)
+
+        dz_norm = dz * self.gamma[layer_index]
+        dvar = np.sum(dz_norm * (z - mean) * -0.5 * std_inv**3, axis=0, keepdims=True)
+        dmean = np.sum(dz_norm * -std_inv, axis=0, keepdims=True) + dvar * np.mean(-2. * (z - mean), axis=0, keepdims=True)
+
+        dz_final = dz_norm * std_inv + dvar * 2 * (z - mean) / m + dmean / m
+
+        return dz_final, dgamma, dbeta
