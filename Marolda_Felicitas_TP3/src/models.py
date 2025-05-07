@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NeuralNetwork:
-    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, mejora = None, learning_rate: float = 0.1, epochs = 1000, weights_inicialies = 'He'):
+    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, mejora = None, learning_rate: float = 0.1, epochs = 1000, graph = True, weights_inicialies = 'He'):
         self.X = X
         self.y = np.eye(np.max(y) + 1)[y]
         self.y_val = np.eye(np.max(y) + 1)[y_val]
@@ -20,6 +20,7 @@ class NeuralNetwork:
         self.losses_val = []
         self.gradients_weights = {}
         self.gradients_biases = {}
+        self.graph = graph
 
         # Initialize weights and biases
         self.weights = []
@@ -37,9 +38,9 @@ class NeuralNetwork:
         
         if self.mejora.get("ADAM", False):
             # Inicialización para Adam
-            self.beta1 = 0.9  # Factor de decaimiento para el primer momento
-            self.beta2 = 0.999  # Factor de decaimiento para el segundo momento
-            self.epsilon = 1e-8
+            self.beta1 = self.mejora["ADAM"][0]
+            self.beta2 = self.mejora["ADAM"][1]
+            self.epsilon = self.mejora["ADAM"][2]
             self.m_t_weights = [np.zeros_like(w) for w in self.weights]
             self.v_t_weights = [np.zeros_like(w) for w in self.weights]
             self.m_t_biases = [np.zeros_like(b) for b in self.biases]
@@ -245,13 +246,14 @@ class NeuralNetwork:
                             break
 
 
-
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch}, Loss: {loss}")
-                print(f"loss val: {val_loss}")
+            if self.graph:
+                if epoch % 10 == 0:
+                    print(f"Epoch {epoch}, Loss: {loss}")
+                    print(f"loss val: {val_loss}")
             
         # graph the losses
-        self.graph_losses()
+        if self.graph:
+            self.graph_losses()
 
     def graph_losses(self):
         plt.plot(self.losses, label='Train Loss')
@@ -303,7 +305,7 @@ class NeuralNetwork:
             # 3. Actualización de biases con tasa adaptativa
             self.biases[i] -= self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
 
-    def fit_mini_batch(self, X_val, y_val) -> None:
+    def fit_mini_batch(self, X_val, y_val, graph = True) -> None:
         batch_size = self.mejora.get("Mini batch stochastic gradient descent")
         for epoch in range(self.epochs):
             
@@ -339,11 +341,12 @@ class NeuralNetwork:
                 val_loss = self.cross_entropy_loss(y_val_pred, y_val)
                 self.losses_val.append(val_loss)
 
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch}, Loss: {loss}")
-                print(f"loss val: {val_loss}")
-
-        self.graph_losses()
+            if self.graph:
+                if epoch % 10 == 0:
+                    print(f"Epoch {epoch}, Loss: {loss}")
+                    print(f"loss val: {val_loss}")
+        if self.graph:
+            self.graph_losses()
 
     def batch_norm_forward(self, z, layer_index, training=True):
         if training:
