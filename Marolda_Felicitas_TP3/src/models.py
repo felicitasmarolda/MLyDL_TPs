@@ -55,13 +55,7 @@ class NeuralNetwork:
             self.dropout_masks = {}
 
         if self.mejora.get("Batch normalization", False):
-            self.gamma = [np.ones((1, self.nodes_in_layer[i + 1])) for i in range(self.layers - 2)]
-            self.beta = [np.zeros((1, self.nodes_in_layer[i + 1])) for i in range(self.layers - 2)]
-            self.running_mean = [np.zeros((1, self.nodes_in_layer[i + 1])) for i in range(self.layers - 2)]
-            self.running_var = [np.ones((1, self.nodes_in_layer[i + 1])) for i in range(self.layers - 2)]
-            self.momentum = self.mejora["Batch normalization"]  # Factor de momentum para la actualización de estadísticas en Batch Normalization
-            self.gradients_gamma = []
-            self.gradients_beta = []
+            
         # fit
         if self.mejora.get("Mini batch stochastic gradient descent", False):
             self.fit_mini_batch(X_val, y_val)
@@ -222,12 +216,12 @@ class NeuralNetwork:
             else:
                 self.gradient_descent()
 
-            y_pred = self.forward_pass(self.X)
+            y_pred = self.forward_pass(self.X, training=False)
             loss = self.cross_entropy_loss(y_pred)
             self.losses.append(loss)
             
             if X_val is not None and y_val is not None:
-                y_val_pred = self.forward_pass(X_val)
+                y_val_pred = self.forward_pass(X_val, training=False)
                 val_loss = self.cross_entropy_loss(y_val_pred, y_val)
                 self.losses_val.append(val_loss)
 
@@ -277,7 +271,7 @@ class NeuralNetwork:
             self.weights[i] -= current_lr * self.gradients_weights[i]
             self.biases[i] -= current_lr * self.gradients_biases[i]
 
-    def gradient_descent_adam(self):
+    def gradient_descent_adam(self, minibatch = False):
         self.t += 1  # Incrementamos el contador de pasos
         
         for i in range(self.layers - 1):
@@ -327,17 +321,17 @@ class NeuralNetwork:
                 if self.mejora.get("Rate scheduling lineal", False):
                     self.gradient_descent_rate_scheduling_lineal(epoch)
                 elif self.mejora.get("ADAM", False):
-                    self.gradient_descent_adam()
+                    self.gradient_descent_adam(minibatch = True)
                 else:
                     self.gradient_descent()
 
             # la loss con todo X
-            y_pred = self.forward_pass(self.X)
+            y_pred = self.forward_pass(self.X, training=False)
             loss = self.cross_entropy_loss(y_pred)
             self.losses.append(loss)
 
             if X_val is not None and y_val is not None:
-                y_val_pred = self.forward_pass(X_val)
+                y_val_pred = self.forward_pass(X_val, training = False)
                 val_loss = self.cross_entropy_loss(y_val_pred, y_val)
                 self.losses_val.append(val_loss)
 
@@ -349,36 +343,7 @@ class NeuralNetwork:
             self.graph_losses()
 
     def batch_norm_forward(self, z, layer_index, training=True):
-        if training:
-            mean = np.mean(z, axis=0, keepdims=True)
-            var = np.var(z, axis=0, keepdims=True)
-            z_norm = (z - mean) / np.sqrt(var + 1e-8)
-            # Update running stats
-            self.running_mean[layer_index] = self.momentum * self.running_mean[layer_index] + (1 - self.momentum) * mean
-            self.running_var[layer_index] = self.momentum * self.running_var[layer_index] + (1 - self.momentum) * var
-        else:
-            # Use running stats for inference
-            mean = self.running_mean[layer_index]
-            var = self.running_var[layer_index]
-            z_norm = (z - mean) / np.sqrt(var + 1e-8)
-        out = self.gamma[layer_index] * z_norm + self.beta[layer_index]
-        return out
+        
     
     def batch_norm_backward(self, dz, z, layer_index):
-        m = dz.shape[0]
-        mean = np.mean(z, axis=0, keepdims=True)
-        var = np.var(z, axis=0, keepdims=True)
-        std_inv = 1. / np.sqrt(var + 1e-8)
-
-        z_norm = (z - mean) * std_inv
-
-        dgamma = np.sum(dz * z_norm, axis=0, keepdims=True)
-        dbeta = np.sum(dz, axis=0, keepdims=True)
-
-        dz_norm = dz * self.gamma[layer_index]
-        dvar = np.sum(dz_norm * (z - mean) * -0.5 * std_inv**3, axis=0, keepdims=True)
-        dmean = np.sum(dz_norm * -std_inv, axis=0, keepdims=True) + dvar * np.mean(-2. * (z - mean), axis=0, keepdims=True)
-
-        dz_final = dz_norm * std_inv + dvar * 2 * (z - mean) / m + dmean / m
-
-        return dz_final, dgamma, dbeta
+        
