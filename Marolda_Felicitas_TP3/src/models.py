@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NeuralNetwork:
-    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, mejora = None, learning_rate: float = 0.1, epochs = 1000, graph = True, weights_inicialies = 'He'):
+    def __init__(self, X, y, X_val, y_val, activation_functions: list, nodes_in_layer: list, mejora = None, learning_rate = 0.1, epochs = 1000, graph = True, weights_inicialies = 'He'):
         self.X = X
         self.y = np.eye(np.max(y) + 1)[y]
         self.y_val = np.eye(np.max(y) + 1)[y_val]
