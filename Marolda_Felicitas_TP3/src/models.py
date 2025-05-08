@@ -227,9 +227,10 @@ class NeuralNetwork:
 
                 if self.mejora.get("Early stopping", False):
                     # si esta subiendo hace patience epochs corto
-                    if epoch > 10 and val_loss > self.losses_val[-2]:
+                    if epoch > 10 and (val_loss > self.losses_val[-2] or val_loss > self.losses_val[-3]):
+                        # si la validacion no mejora en patience epochs, se corta
                         self.early_stopping_count -= 1
-                        # print(f"Early stopping count: {self.early_stopping_count} in epoch {epoch}")
+                        print(f"Early stopping count: {self.early_stopping_count} in epoch {epoch}")
                         if self.early_stopping_count == 0:
                             print("Early stopping triggered")
                             break
