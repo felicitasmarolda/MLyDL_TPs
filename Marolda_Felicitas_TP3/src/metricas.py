@@ -43,3 +43,15 @@ def get_metrics(y_pred, y_true):
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.show()
+
+
+def print_acc_ce(y_pred, y_true):
+    """ print accuracy and cross entropy """
+    
+    y_pred_labels = np.argmax(y_pred, axis=1)
+
+    acc = accuracy(y_pred_labels, y_true)
+    ce = cross_entropy(y_true, y_pred)  # aquí sí necesitas las probabilidades
+
+    print(f'Accuracy: {acc:.4f}')
+    print(f'Cross Entropy: {ce:.4f}')

@@ -54,7 +54,7 @@ class NeuralNetwork:
             self.dropout_rates = [self.mejora["Dropout"]]* (self.layers - 2)
             self.dropout_masks = {}
 
-        if self.mejora.get("Batch normalization", False):
+        # if self.mejora.get("Batch normalization", False):
             
         # fit
         if self.mejora.get("Mini batch stochastic gradient descent", False):
@@ -127,8 +127,8 @@ class NeuralNetwork:
         for i in range(self.layers - 1):
             self.z[i] = np.dot(a, self.weights[i]) + self.biases[i]
             
-            if self.mejora.get("Batch normalization", False) and i < self.layers - 2:
-                self.z[i] = self.batch_norm_forward(self.z[i], i, training)
+            # if self.mejora.get("Batch normalization", False) and i < self.layers - 2:
+            #     self.z[i] = self.batch_norm_forward(self.z[i], i, training)
 
             if self.activation_functions[i] == 'ReLU':
                 a = self.ReLU(self.z[i])
@@ -174,11 +174,11 @@ class NeuralNetwork:
                             dz *= mask
                             dz /= (1.0 - rate)
 
-                    if self.mejora.get("Batch normalization", False) and i - 1 < len(self.gamma):
-                        dz, dgamma, dbeta = self.batch_norm_backward(dz, self.z[i - 1], i - 1)
-                        # Guardar gradientes para actualizar gamma y beta si querés
-                        self.gradients_gamma[i - 1] = dgamma
-                        self.gradients_beta[i - 1] = dbeta
+                    # if self.mejora.get("Batch normalization", False) and i - 1 < len(self.gamma):
+                    #     dz, dgamma, dbeta = self.batch_norm_backward(dz, self.z[i - 1], i - 1)
+                    #     # Guardar gradientes para actualizar gamma y beta si querés
+                    #     self.gradients_gamma[i - 1] = dgamma
+                    #     self.gradients_beta[i - 1] = dbeta
 
                     self.delta[i] =dz * self.ReLU_derivative(self.z[i-1])              
                 else:
@@ -186,9 +186,9 @@ class NeuralNetwork:
         
     def gradient_descent(self) -> None:
         for i in range(self.layers - 1):
-            if self.mejora.get("Batch normalization", False) and i < len(self.gamma):
-                self.gamma[i] -= self.learning_rate * self.gradients_gamma[i]
-                self.beta[i] -= self.learning_rate * self.gradients_beta[i]
+            # if self.mejora.get("Batch normalization", False) and i < len(self.gamma):
+            #     self.gamma[i] -= self.learning_rate * self.gradients_gamma[i]
+            #     self.beta[i] -= self.learning_rate * self.gradients_beta[i]
             self.weights[i] -= self.learning_rate * self.gradients_weights[i]
             self.biases[i] -= self.learning_rate * self.gradients_biases[i]
 
@@ -226,18 +226,15 @@ class NeuralNetwork:
                 self.losses_val.append(val_loss)
 
                 if self.mejora.get("Early stopping", False):
-                    # inicializa si no está
-                    if not hasattr(self, "best_val_loss"):
-                        self.best_val_loss = val_loss
-                        self.early_stopping_counter = 0
-                    elif val_loss < self.best_val_loss - 1e-4:  # margen mínimo de mejora
-                        self.best_val_loss = val_loss
-                        self.early_stopping_counter = 0
-                    else:
-                        self.early_stopping_counter += 1
-                        if self.early_stopping_counter >= self.mejora["Early stopping"]:
-                            print(f"Early stopping triggered at epoch {epoch}. Best val loss: {self.best_val_loss:.4f}")
+                    # si esta subiendo hace patience epochs corto
+                    if epoch > 10 and val_loss > self.losses_val[-2]:
+                        self.early_stopping_count -= 1
+                        # print(f"Early stopping count: {self.early_stopping_count} in epoch {epoch}")
+                        if self.early_stopping_count == 0:
+                            print("Early stopping triggered")
                             break
+                    else:
+                        self.early_stopping_count = self.mejora["Early stopping"]
 
 
             if self.graph:
@@ -342,8 +339,8 @@ class NeuralNetwork:
         if self.graph:
             self.graph_losses()
 
-    def batch_norm_forward(self, z, layer_index, training=True):
+    # def batch_norm_forward(self, z, layer_index, training=True):
         
     
-    def batch_norm_backward(self, dz, z, layer_index):
+    # def batch_norm_backward(self, dz, z, layer_index):
         
