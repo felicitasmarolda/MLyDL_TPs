@@ -36,6 +36,9 @@ class NeuralNetwork:
         if self.mejora.get("Rate scheduling lineal", False):
             self.lr_min = self.mejora["Rate scheduling lineal"]
         
+        if self.mejora.get("Rate scheduling exponencial", False):
+            self.decay_rate = self.mejora["Rate scheduling exponencial"]
+        
         if self.mejora.get("ADAM", False):
             # Inicialización para Adam
             self.beta1 = self.mejora["ADAM"][0]
@@ -213,6 +216,8 @@ class NeuralNetwork:
                 self.gradient_descent_rate_scheduling_lineal(epoch)
             elif self.mejora.get("ADAM", False):
                 self.gradient_descent_adam()
+            elif self.mejora.get("Rate scheduling exponencial", False):
+                self.gradient_descent_rate_scheduling_exponencial(epoch)
             else:
                 self.gradient_descent()
 
@@ -230,7 +235,7 @@ class NeuralNetwork:
                     if epoch > 10 and (val_loss > self.losses_val[-2] or val_loss > self.losses_val[-3]):
                         # si la validacion no mejora en patience epochs, se corta
                         self.early_stopping_count -= 1
-                        print(f"Early stopping count: {self.early_stopping_count} in epoch {epoch}")
+                        # print(f"Early stopping count: {self.early_stopping_count} in epoch {epoch}")
                         if self.early_stopping_count == 0:
                             print("Early stopping triggered")
                             break
@@ -268,6 +273,13 @@ class NeuralNetwork:
         for i in range(self.layers - 1):
             self.weights[i] -= current_lr * self.gradients_weights[i]
             self.biases[i] -= current_lr * self.gradients_biases[i]
+
+    def gradient_descent_rate_scheduling_exponencial(self, epoch):
+        current_lr = self.learning_rate * (self.lr_decay_rate ** epoch)
+        for i in range(self.layers - 1):
+            self.weights[i] -= current_lr * self.gradients_weights[i]
+            self.biases[i] -= current_lr * self.gradients_biases[i]
+
 
     def gradient_descent_adam(self, minibatch = False):
         self.t += 1  # Incrementamos el contador de pasos
@@ -318,6 +330,8 @@ class NeuralNetwork:
                 self.backpropagation(y_batch, X_batch)
                 if self.mejora.get("Rate scheduling lineal", False):
                     self.gradient_descent_rate_scheduling_lineal(epoch)
+                elif self.mejora.get("Rate scheduling exponencial", False):
+                    self.gradient_descent_rate_scheduling_exponencial(epoch)
                 elif self.mejora.get("ADAM", False):
                     self.gradient_descent_adam(minibatch = True)
                 else:
