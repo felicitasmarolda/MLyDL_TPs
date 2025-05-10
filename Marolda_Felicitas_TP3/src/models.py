@@ -56,8 +56,6 @@ class NeuralNetwork:
         if self.mejora.get("Dropout", False):
             self.dropout_rates = [self.mejora["Dropout"]]* (self.layers - 2)
             self.dropout_masks = {}
-
-        # if self.mejora.get("Batch normalization", False):
             
         # fit
         if self.mejora.get("Mini batch stochastic gradient descent", False):
@@ -92,8 +90,11 @@ class NeuralNetwork:
     def cross_entropy_loss(self, y_pred, y=None):
         if y is None:
             y = self.y
-        else:
-            y = np.eye(np.max(y) + 1)[y]
+        # else:
+        #     y = np.eye(np.max(y) + 1)[y]
+        if y.ndim == 1 or y.shape[1] == 1:
+            y = np.eye(y_pred.shape[1])[y.reshape(-1).astype(int)]
+
         m = self.X.shape[0]
         loss = -np.sum(y * np.log(y_pred + 1e-8)) / m
 
@@ -285,8 +286,11 @@ class NeuralNetwork:
             self.biases[i] -= current_lr * self.gradients_biases[i]
 
 
-    def gradient_descent_adam(self, minibatch = False):
+    def gradient_descent_adam(self, current_lr=None):
         self.t += 1  # Incrementamos el contador de pasos
+        
+        # Use the passed learning rate if provided, otherwise use the default
+        lr = current_lr if current_lr is not None else self.learning_rate
         
         for i in range(self.layers - 1):
             # --- Actualización para pesos ---
@@ -298,8 +302,8 @@ class NeuralNetwork:
             m_hat_w = self.m_t_weights[i] / (1 - self.beta1**self.t)
             v_hat_w = self.v_t_weights[i] / (1 - self.beta2**self.t)
             
-            # 3. Actualización de pesos con tasa adaptativa
-            self.weights[i] -= self.learning_rate * m_hat_w / (np.sqrt(v_hat_w) + self.epsilon)
+            # 3. Actualización de pesos con tasa adaptativa - NOW USING lr INSTEAD OF self.learning_rate
+            self.weights[i] -= lr * m_hat_w / (np.sqrt(v_hat_w) + self.epsilon)
             
             # --- Actualización para biases ---
             # 1. Calcular momentos (media y varianza)
@@ -310,8 +314,35 @@ class NeuralNetwork:
             m_hat_b = self.m_t_biases[i] / (1 - self.beta1**self.t)
             v_hat_b = self.v_t_biases[i] / (1 - self.beta2**self.t)
             
-            # 3. Actualización de biases con tasa adaptativa
-            self.biases[i] -= self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
+            # 3. Actualización de biases con tasa adaptativa - NOW USING lr INSTEAD OF self.learning_rate
+            self.biases[i] -= lr * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
+    # def gradient_descent_adam(self):
+    #     self.t += 1  # Incrementamos el contador de pasos
+        
+    #     for i in range(self.layers - 1):
+    #         # --- Actualización para pesos ---
+    #         # 1. Calcular momentos (media y varianza)
+    #         self.m_t_weights[i] = self.beta1 * self.m_t_weights[i] + (1 - self.beta1) * self.gradients_weights[i]
+    #         self.v_t_weights[i] = self.beta2 * self.v_t_weights[i] + (1 - self.beta2) * (self.gradients_weights[i]**2)
+            
+    #         # 2. Corrección de bias (para contrarrestar la inicialización en 0)
+    #         m_hat_w = self.m_t_weights[i] / (1 - self.beta1**self.t)
+    #         v_hat_w = self.v_t_weights[i] / (1 - self.beta2**self.t)
+            
+    #         # 3. Actualización de pesos con tasa adaptativa
+    #         self.weights[i] -= self.learning_rate * m_hat_w / (np.sqrt(v_hat_w) + self.epsilon)
+            
+    #         # --- Actualización para biases ---
+    #         # 1. Calcular momentos (media y varianza)
+    #         self.m_t_biases[i] = self.beta1 * self.m_t_biases[i] + (1 - self.beta1) * self.gradients_biases[i]
+    #         self.v_t_biases[i] = self.beta2 * self.v_t_biases[i] + (1 - self.beta2) * (self.gradients_biases[i]**2)
+            
+    #         # 2. Corrección de bias
+    #         m_hat_b = self.m_t_biases[i] / (1 - self.beta1**self.t)
+    #         v_hat_b = self.v_t_biases[i] / (1 - self.beta2**self.t)
+            
+    #         # 3. Actualización de biases con tasa adaptativa
+    #         self.biases[i] -= self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
 
     def fit_mini_batch(self, X_val, y_val, graph = True) -> None:
         batch_size = self.mejora.get("Mini batch stochastic gradient descent")
@@ -337,7 +368,11 @@ class NeuralNetwork:
                 elif self.mejora.get("Rate scheduling exponencial", False):
                     self.gradient_descent_rate_scheduling_exponencial(epoch)
                 elif self.mejora.get("ADAM", False):
-                    self.gradient_descent_adam(minibatch = True)
+                    if self.mejora.get("Rate scheduling exponencial", False):
+                        current_lr = self.learning_rate * (self.decay_rate ** epoch)
+                        self.gradient_descent_adam(current_lr)
+                    else:
+                        self.gradient_descent_adam()
                 else:
                     self.gradient_descent()
 
@@ -367,6 +402,8 @@ import torch
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
+import torch.nn.init as init
 
 class NNTorch(nn.Module):
     def __init__(self, input_size, hidden_layers, output_size, mejora=None):
@@ -383,11 +420,7 @@ class NNTorch(nn.Module):
         self.layers.append(nn.Linear(input_size, hidden_layers[0]))
         self.layers.append(nn.ReLU())
         
-        # Add batch norm if specified
-        if self.mejora.get("Batch normalization", False):
-            self.layers.append(nn.BatchNorm1d(hidden_layers[0]))
-        
-        # Add dropout if specified
+        # Dropout
         if self.mejora.get("Dropout", False):
             self.layers.append(nn.Dropout(self.mejora["Dropout"]))
         
@@ -396,10 +429,6 @@ class NNTorch(nn.Module):
             self.layers.append(nn.Linear(hidden_layers[i], hidden_layers[i + 1]))
             self.layers.append(nn.ReLU())
 
-            # Add batch norm if specified
-            if self.mejora.get("Batch normalization", False):
-                self.layers.append(nn.BatchNorm1d(hidden_layers[i + 1]))
-            
             # Add dropout if specified
             if self.mejora.get("Dropout", False):
                 self.layers.append(nn.Dropout(self.mejora["Dropout"]))
@@ -414,6 +443,11 @@ class NNTorch(nn.Module):
         self.train_losses = []
         self.val_losses = []
 
+        for layer in self.layers:
+            if isinstance(layer, nn.Linear):
+                init.kaiming_normal_(layer.weight, nonlinearity='relu' if layer != self.layers[-1] else 'linear')
+                init.zeros_(layer.bias)
+
     def forward(self, x):
         # Pass input through all layers sequentially
         out = x
@@ -421,4 +455,150 @@ class NNTorch(nn.Module):
             out = layer(out)
         return out
 
+    def fit(self, X, y, X_val=None, y_val=None, learning_rate=0.01, epochs=1000, batch_size=32, graph=True):
+        if isinstance(X, np.ndarray):
+                X = torch.FloatTensor(X)
+        if isinstance(y, np.ndarray):
+            y = torch.LongTensor(y)
+        
+        # Create dataset and dataloader
+        dataset = TensorDataset(X, y)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        
+        # Prepare validation data if provided
+        if isinstance(X_val, np.ndarray):
+            X_val = torch.FloatTensor(X_val)
+        if isinstance(y_val, np.ndarray):
+            y_val = torch.LongTensor(y_val)
+        
+        # Loss function
+        criterion = nn.CrossEntropyLoss()
+        
+        # Optimizer with learning rate
+        if self.mejora.get("ADAM", False):
+            beta1, beta2, epsilon = self.mejora["ADAM"]
+            optimizer = optim.Adam(self.parameters(), lr=learning_rate, betas=(beta1, beta2), eps=epsilon, weight_decay=self.l2_lambda)
+        else:
+            optimizer = optim.SGD(self.parameters(), lr=learning_rate, weight_decay=self.l2_lambda)
+        
+        # Learning rate scheduler
+        scheduler = None
+        if self.mejora.get("Rate scheduling exponencial", False):
+            decay_rate = self.mejora["Rate scheduling exponencial"]
+            scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=decay_rate)
+        elif self.mejora.get("Rate scheduling lineal", False):
+            lr_min = self.mejora["Rate scheduling lineal"]
+            lambda_fn = lambda epoch: max(1.0 - epoch/epochs, lr_min/learning_rate)
+            scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_fn)
+            
+        # Early stopping parameters
+        best_val_loss = float('inf')
+        early_stopping_counter = 0
+        early_stopping_patience = self.mejora.get("Early stopping", float('inf'))
+        
+        # Training loop
+        for epoch in range(epochs):
+            # Set to training mode
+            self.train()
+            total_loss = 0.0
+            
+            # Mini-batch training
+            for inputs, labels in dataloader:
+                # Zero the parameter gradients
+                optimizer.zero_grad()
+                
+                # Forward pass
+                outputs = self(inputs)
+                loss = criterion(outputs, labels)
+                
+                # Backward pass and optimize
+                loss.backward()
+                optimizer.step()
+                
+                total_loss += loss.item() * inputs.size(0)
+            
+            # Calculate epoch loss
+            epoch_loss = total_loss / len(dataset)
+            self.train_losses.append(epoch_loss)
+            
+            # Validation
+            val_loss = None
+            val_loss = self._evaluate(X_val, y_val, criterion)
+            self.val_losses.append(val_loss)
+            
+            # Early stopping check
+            if self.mejora.get("Early stopping", False):
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    early_stopping_counter = 0
+                else:
+                    early_stopping_counter += 1
+                    if early_stopping_counter >= early_stopping_patience:
+                        if graph:
+                            print(f"Early stopping triggered at epoch {epoch}")
+                        break
+            
+            # Update learning rate if scheduler is used
+            if scheduler:
+                scheduler.step()
+            
+            # Print progress
+            if graph and epoch % 10 == 0:
+                print(f"Epoch {epoch}, Loss: {epoch_loss:.4f}", end="")
+                if val_loss:
+                    print(f", Val Loss: {val_loss:.4f}")
+                else:
+                    print()
+        
+        # Plot losses if requested
+        if graph:
+            self._graph_losses()
     
+    def _evaluate(self, X, y, criterion):
+        self.eval()
+        with torch.no_grad():
+            outputs = self(X)
+            loss = criterion(outputs, y)
+        return loss.item()
+    
+    def _graph_losses(self):
+        """Plot training and validation losses"""
+        plt.figure(figsize=(10, 6))
+        plt.plot(self.train_losses, label='Training Loss', color='limegreen')
+        if self.val_losses:
+            plt.plot(self.val_losses, label='Validation Loss', color='deeppink')
+        # plt.yscale('log')
+        plt.xlabel('Epochs')
+        plt.ylabel('Cross Entropy Loss')
+        plt.title('Loss vs Epochs')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.show()
+    
+    def predict_class(self, X):
+        if isinstance(X, np.ndarray):
+            X = torch.FloatTensor(X)
+        
+        self.eval()
+        
+        # Get predictions
+        with torch.no_grad():
+            outputs = self(X)
+            _, predicted = torch.max(outputs, 1)
+        
+        return predicted.numpy()
+    
+    def predict_proba(self, X):
+        # Convert to tensor if numpy array
+        if isinstance(X, np.ndarray):
+            X = torch.FloatTensor(X)
+        
+        # Set model to evaluation mode
+        self.eval()
+        
+        # Get predictions
+        with torch.no_grad():
+            outputs = self(X)
+            probabilities = torch.nn.functional.softmax(outputs, dim=1)
+        
+        return probabilities.numpy()

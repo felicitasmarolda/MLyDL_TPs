@@ -155,7 +155,7 @@ def cross_validation(X, y, params, k = 5):
     return results, avg_acc, avg_ce
 
 
-def graph(x,y1, y2, title, xlabel, names):
+def graph(x,y1, y2, title, xlabel, names, scale = None):
     import matplotlib.pyplot as plt
 
     plt.scatter(x, y1, label=names[0], color='cornflowerblue')
@@ -164,4 +164,8 @@ def graph(x,y1, y2, title, xlabel, names):
     plt.xlabel(xlabel)
     plt.ylabel('Accuracy / Cross Entropy')
     plt.legend()
+
+    if scale == 'log':
+        plt.xscale('log')
+
     plt.show()

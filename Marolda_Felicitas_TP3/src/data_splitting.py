@@ -22,5 +22,4 @@ def split_data(X, y, test_size = 0.2, val_size = 0.2, random_state = 42):
 
 def normalize(X, number = 255):
     # dividimos todo por 255
-    X = X / number
-    return X
+    return X / number
