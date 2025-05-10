@@ -92,7 +92,7 @@ def cross_validation_mejora(X, y, nombre, hiperparametros, params, k = 5):
         print(f"hp: {hp}")
         fold_results = []
         for i in range(k):
-            print(f"Fold {i+1}/{k}")
+            # print(f"Fold {i+1}/{k}")
             # Split data into training and validation sets
             val_indices = folds[i]
             train_indices = np.concatenate([folds[j] for j in range(k) if j != i])

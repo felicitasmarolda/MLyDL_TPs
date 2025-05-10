@@ -275,7 +275,7 @@ class NeuralNetwork:
             self.biases[i] -= current_lr * self.gradients_biases[i]
 
     def gradient_descent_rate_scheduling_exponencial(self, epoch):
-        current_lr = self.learning_rate * (self.lr_decay_rate ** epoch)
+        current_lr = self.learning_rate * (self.decay_rate ** epoch)
         for i in range(self.layers - 1):
             self.weights[i] -= current_lr * self.gradients_weights[i]
             self.biases[i] -= current_lr * self.gradients_biases[i]
