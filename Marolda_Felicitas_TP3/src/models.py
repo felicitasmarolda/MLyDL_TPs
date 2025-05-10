@@ -215,7 +215,11 @@ class NeuralNetwork:
             if self.mejora.get("Rate scheduling lineal", False):
                 self.gradient_descent_rate_scheduling_lineal(epoch)
             elif self.mejora.get("ADAM", False):
-                self.gradient_descent_adam()
+                if self.mejora.get("Rate scheduling exponencial", False):
+                    current_lr = self.learning_rate * (self.decay_rate ** epoch)
+                    self.gradient_descent_adam(current_lr)
+                else:
+                    self.gradient_descent_adam()
             elif self.mejora.get("Rate scheduling exponencial", False):
                 self.gradient_descent_rate_scheduling_exponencial(epoch)
             else:
@@ -253,11 +257,11 @@ class NeuralNetwork:
             self.graph_losses()
 
     def graph_losses(self):
-        plt.plot(self.losses, label='Train Loss')
+        plt.plot(self.losses, label='Train Loss', color='limegreen')
         if self.losses_val:
-            plt.plot(self.losses_val, label='Validation Loss')
+            plt.plot(self.losses_val, label='Validation Loss', color='deeppink')
         plt.xlabel('Epochs')
-        plt.ylabel('Loss')
+        plt.ylabel('Cross entropy Loss')
         plt.title('Loss vs Epochs')
         plt.legend()
         plt.show()
@@ -359,3 +363,62 @@ class NeuralNetwork:
     
     # def batch_norm_backward(self, dz, z, layer_index):
         
+import torch
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+class NNTorch(nn.Module):
+    def __init__(self, input_size, hidden_layers, output_size, mejora=None):
+        super(NNTorch, self).__init__()
+
+        self.input_size = input_size
+        self.hidden_layers = hidden_layers
+        self.output_size = output_size
+        self.mejora = mejora if mejora else {}
+
+        self.layers = nn.ModuleList()
+        
+        # Input layer
+        self.layers.append(nn.Linear(input_size, hidden_layers[0]))
+        self.layers.append(nn.ReLU())
+        
+        # Add batch norm if specified
+        if self.mejora.get("Batch normalization", False):
+            self.layers.append(nn.BatchNorm1d(hidden_layers[0]))
+        
+        # Add dropout if specified
+        if self.mejora.get("Dropout", False):
+            self.layers.append(nn.Dropout(self.mejora["Dropout"]))
+        
+        # Hidden layers
+        for i in range(len(hidden_layers) - 1):
+            self.layers.append(nn.Linear(hidden_layers[i], hidden_layers[i + 1]))
+            self.layers.append(nn.ReLU())
+
+            # Add batch norm if specified
+            if self.mejora.get("Batch normalization", False):
+                self.layers.append(nn.BatchNorm1d(hidden_layers[i + 1]))
+            
+            # Add dropout if specified
+            if self.mejora.get("Dropout", False):
+                self.layers.append(nn.Dropout(self.mejora["Dropout"]))
+
+        # Output layer
+        self.layers.append(nn.Linear(hidden_layers[-1], output_size))
+        
+        # L2 regularization
+        self.l2_lambda = self.mejora.get("L2", 0.0)
+        
+        # For tracking training progress
+        self.train_losses = []
+        self.val_losses = []
+
+    def forward(self, x):
+        # Pass input through all layers sequentially
+        out = x
+        for layer in self.layers:
+            out = layer(out)
+        return out
+
+    
