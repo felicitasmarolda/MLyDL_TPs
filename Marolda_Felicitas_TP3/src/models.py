@@ -456,15 +456,22 @@ class NNTorch(nn.Module):
             out = layer(out)
         return out
 
-    def fit(self, X, y, X_val=None, y_val=None, learning_rate=0.01, epochs=1000, batch_size=32, graph=True):
+    def fit(self, X, y, X_val=None, y_val=None, learning_rate=0.01, epochs=1000, batch_size=None, graph=True):
         if isinstance(X, np.ndarray):
                 X = torch.FloatTensor(X)
         if isinstance(y, np.ndarray):
             y = torch.LongTensor(y)
         
         # Create dataset and dataloader
+        # Create dataset and dataloader
         dataset = TensorDataset(X, y)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        use_minibatch = self.mejora.get("MiniBatch", False)
+
+        if use_minibatch:
+            dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        else:
+            dataloader = [(X, y)]  # Full-batch training
+
         
         # Prepare validation data if provided
         if isinstance(X_val, np.ndarray):
