@@ -137,7 +137,6 @@ def cross_validation(X, y, params, k = 5):
         
         X_train, y_train = X[train_indices], y[train_indices]
         X_val, y_val = X[val_indices], y[val_indices]
-        
         model = md.NeuralNetwork(X_train, y_train, X_val, y_val, params[0], params[1], mejora = params[3], learning_rate = params[2], epochs = 1000, graph = False)
 
         y_pred = model.forward_pass(X_val, False)
@@ -146,6 +145,7 @@ def cross_validation(X, y, params, k = 5):
         acc = mt.accuracy(y_pred_labels, y_val)
         print("acc: ", acc)
         ce = mt.cross_entropy(y_val, y_pred)
+        print("ce: ", ce)
 
         results.append((acc, ce))
 
@@ -155,11 +155,15 @@ def cross_validation(X, y, params, k = 5):
     return results, avg_acc, avg_ce
 
 
-def graph(x,y1, y2, title, xlabel, names, scale = None):
+def graph(x,y1, y2, title, xlabel, names, scale = None, unite = False):
     import matplotlib.pyplot as plt
 
     plt.scatter(x, y1, label=names[0], color='cornflowerblue')
     plt.scatter(x, y2, label=names[1], color='indigo')
+
+    if unite:
+        plt.plot(x, y1, label=names[0], color='cornflowerblue')
+        plt.plot(x, y2, label=names[1], color='indigo')
 
     plt.xlabel(xlabel)
     plt.ylabel('Accuracy / Cross Entropy')

@@ -452,7 +452,7 @@ class NNTorch(nn.Module):
         # Pass input through all layers sequentially
         out = x
         for layer in self.layers:
-            print(layer)
+            # print(layer)
             out = layer(out)
         return out
 
