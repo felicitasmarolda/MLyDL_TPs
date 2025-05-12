@@ -224,7 +224,7 @@ class NeuralNetwork:
             self.graph_losses()
 
     def graph_losses(self):
-        fs = 16
+        fs = 13
         plt.plot(self.losses, label='Train Loss', color='limegreen')
         if self.losses_val:
             plt.plot(self.losses_val, label='Validation Loss', color='deeppink')
@@ -479,15 +479,16 @@ class NNTorch(nn.Module):
         return loss.item()
     
     def _graph_losses(self):
+        fs = 13
         plt.figure(figsize=(10, 6))
         plt.plot(self.train_losses, label='Training Loss', color='limegreen')
         if self.val_losses:
             plt.plot(self.val_losses, label='Validation Loss', color='deeppink')
         # plt.yscale('log')
-        plt.xlabel('Epochs')
-        plt.ylabel('Cross Entropy Loss')
-        plt.title('Loss vs Epochs')
-        plt.legend()
+        plt.xlabel('Epochs', fontsize=fs)
+        plt.ylabel('Cross Entropy Loss', fontsize=fs)
+        plt.title('Loss vs Epochs', fontsize=fs)
+        plt.legend(fontsize=fs)
         plt.grid(True, alpha=0.3)
         plt.show()
     

@@ -32,11 +32,12 @@ def get_metrics(y_pred, y_true):
     print(f'Accuracy: {acc:.4f}')
     print(f'Cross Entropy: {ce:.4f}')
 
+    fs = 13
     plt.imshow(cm, cmap='hot', interpolation='nearest')
     plt.colorbar()
-    plt.title('Confusion Matrix')
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
+    plt.title('Confusion Matrix', fontsize=fs)
+    plt.xlabel('Predicted', fontsize=fs)
+    plt.ylabel('True', fontsize=fs)
     plt.show()
 
 
