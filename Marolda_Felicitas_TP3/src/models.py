@@ -438,11 +438,9 @@ class NNTorch(nn.Module):
                 
                 total_loss += loss.item() * inputs.size(0)
             
-            # epoch loss
             epoch_loss = total_loss / len(dataset)
             self.train_losses.append(epoch_loss)
             
-            # Validation
             val_loss = None
             val_loss = self._evaluate(X_val, y_val, criterion)
             self.val_losses.append(val_loss)

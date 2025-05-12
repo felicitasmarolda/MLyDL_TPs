@@ -35,41 +35,41 @@ def cross_validation_lr(X, y, learning_rates, params:tuple, k = 5):
     return results
             
 
-def cross_validation_sgd(X, y, batch_sizes, params, k = 5):
-    n = X.shape[0]
-    fold_size = n // k
-    indices = np.arange(n)
-    np.random.shuffle(indices)
-    folds = np.array_split(indices, k)
-    results = []
-    for bs in batch_sizes:
-        print(f"Batch size: {bs}")
-        fold_results = []
-        for i in range(k):
-            print(f"Fold {i+1}/{k}")
-            val_indices = folds[i]
-            train_indices = np.concatenate([folds[j] for j in range(k) if j != i])
+# def cross_validation_sgd(X, y, batch_sizes, params, k = 5):
+#     n = X.shape[0]
+#     fold_size = n // k
+#     indices = np.arange(n)
+#     np.random.shuffle(indices)
+#     folds = np.array_split(indices, k)
+#     results = []
+#     for bs in batch_sizes:
+#         print(f"Batch size: {bs}")
+#         fold_results = []
+#         for i in range(k):
+#             print(f"Fold {i+1}/{k}")
+#             val_indices = folds[i]
+#             train_indices = np.concatenate([folds[j] for j in range(k) if j != i])
             
-            X_train, y_train = X[train_indices], y[train_indices]
-            X_val, y_val = X[val_indices], y[val_indices]
+#             X_train, y_train = X[train_indices], y[train_indices]
+#             X_val, y_val = X[val_indices], y[val_indices]
             
-            mejoras = {}
-            mejoras["Mini batch stochastic gradient descent"] = bs
-            mejoras["Early stopping"] = 5
-            model = md.NeuralNetwork(X_train, y_train, X_val, y_val, params[0], params[1], mejora = mejoras, learning_rate = params[2], epochs = 1000, graph = False)
+#             mejoras = {}
+#             mejoras["Mini batch stochastic gradient descent"] = bs
+#             mejoras["Early stopping"] = 5
+#             model = md.NeuralNetwork(X_train, y_train, X_val, y_val, params[0], params[1], mejora = mejoras, learning_rate = params[2], epochs = 1000, graph = False)
 
-            y_pred = model.forward_pass(X_val, False)
-            y_pred_labels = np.argmax(y_pred, axis=1)
+#             y_pred = model.forward_pass(X_val, False)
+#             y_pred_labels = np.argmax(y_pred, axis=1)
 
-            acc = mt.accuracy(y_pred_labels, y_val)
-            ce = mt.cross_entropy(y_val, y_pred)
+#             acc = mt.accuracy(y_pred_labels, y_val)
+#             ce = mt.cross_entropy(y_val, y_pred)
 
-            fold_results.append((acc, ce))
-        avg_acc = np.mean([result[0] for result in fold_results])
-        avg_ce = np.mean([result[1] for result in fold_results])
-        print("Avg results: \n"," "*20, "avg acc = ", avg_acc, " "*5, "avg ce = ", avg_ce)
-        results.append((avg_acc, avg_ce))
-    return results
+#             fold_results.append((acc, ce))
+#         avg_acc = np.mean([result[0] for result in fold_results])
+#         avg_ce = np.mean([result[1] for result in fold_results])
+#         print("Avg results: \n"," "*20, "avg acc = ", avg_acc, " "*5, "avg ce = ", avg_ce)
+#         results.append((avg_acc, avg_ce))
+#     return results
 
 def cross_validation_mejora(X, y, nombre, hiperparametros, params, k = 5):
     n = X.shape[0]
@@ -83,7 +83,6 @@ def cross_validation_mejora(X, y, nombre, hiperparametros, params, k = 5):
         fold_results = []
         for i in range(k):
             # print(f"Fold {i+1}/{k}")
-            # Split data into training and validation sets
             val_indices = folds[i]
             train_indices = np.concatenate([folds[j] for j in range(k) if j != i])
             
