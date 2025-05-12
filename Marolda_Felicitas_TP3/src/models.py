@@ -111,9 +111,6 @@ class NeuralNetwork:
         for i in range(self.layers - 1):
             self.z[i] = np.dot(a, self.weights[i]) + self.biases[i]
             
-            # if self.mejora.get("Batch normalization", False) and i < self.layers - 2:
-            #     self.z[i] = self.batch_norm_forward(self.z[i], i, training)
-
             if self.activation_functions[i] == 'ReLU':
                 a = self.ReLU(self.z[i])
             elif self.activation_functions[i] == 'softmax':
@@ -157,21 +154,12 @@ class NeuralNetwork:
                             dz *= mask
                             dz /= (1.0 - rate)
 
-                    # if self.mejora.get("Batch normalization", False) and i - 1 < len(self.gamma):
-                    #     dz, dgamma, dbeta = self.batch_norm_backward(dz, self.z[i - 1], i - 1)
-                    #     # Guardar gradientes para actualizar gamma y beta si querés
-                    #     self.gradients_gamma[i - 1] = dgamma
-                    #     self.gradients_beta[i - 1] = dbeta
-
                     self.delta[i] =dz * self.ReLU_derivative(self.z[i-1])              
                 else:
                     raise ValueError("Unsupported activation function for backpropagation")
         
     def gradient_descent(self) -> None:
         for i in range(self.layers - 1):
-            # if self.mejora.get("Batch normalization", False) and i < len(self.gamma):
-            #     self.gamma[i] -= self.learning_rate * self.gradients_gamma[i]
-            #     self.beta[i] -= self.learning_rate * self.gradients_beta[i]
             self.weights[i] -= self.learning_rate * self.gradients_weights[i]
             self.biases[i] -= self.learning_rate * self.gradients_biases[i]
 
@@ -232,7 +220,6 @@ class NeuralNetwork:
                     print(f"Epoch {epoch}, Loss: {loss}")
                     print(f"loss val: {val_loss}")
             
-        # graph the losses
         if self.graph:
             self.graph_losses()
 
@@ -250,7 +237,7 @@ class NeuralNetwork:
     # mejoras
     def gradient_descent_rate_scheduling_lineal(self, epoch):
         lr_init = self.learning_rate
-        lr_min = self.lr_min # tasa mínima
+        lr_min = self.lr_min
         decay_ratio = epoch / self.epochs
         current_lr = max(lr_init * (1 - decay_ratio), lr_min)
 
@@ -291,16 +278,13 @@ class NeuralNetwork:
         batch_size = self.mejora.get("Mini batch stochastic gradient descent")
         for epoch in range(self.epochs):
             
-            # mezcla los datos
             indices = np.arange(self.X.shape[0])
             np.random.shuffle(indices)
             X_shuffled = self.X[indices]
             y_shuffled = self.y[indices]
 
-            # dividir en batches
             for i in range(0, len(X_shuffled), batch_size):
 
-                # definimos el batch
                 X_batch = X_shuffled[i:i + batch_size]
                 y_batch = y_shuffled[i:i + batch_size]
 
@@ -319,7 +303,6 @@ class NeuralNetwork:
                 else:
                     self.gradient_descent()
 
-            # la loss con todo X
             y_pred = self.forward_pass(self.X, training=False)
             loss = self.cross_entropy_loss(y_pred)
             self.losses.append(loss)
@@ -355,7 +338,7 @@ class NNTorch(nn.Module):
 
         self.layers = nn.ModuleList()
         
-        # Input layer
+        # Input
         self.layers.append(nn.Linear(input_size, hidden_layers[0]))
         self.layers.append(nn.ReLU())
         
@@ -363,22 +346,20 @@ class NNTorch(nn.Module):
         if self.mejora.get("Dropout", False):
             self.layers.append(nn.Dropout(self.mejora["Dropout"]))
         
-        # Hidden layers
+        # Ocultas
         for i in range(len(hidden_layers) - 1):
             self.layers.append(nn.Linear(hidden_layers[i], hidden_layers[i + 1]))
             self.layers.append(nn.ReLU())
 
-            # Add dropout if specified
             if self.mejora.get("Dropout", False):
                 self.layers.append(nn.Dropout(self.mejora["Dropout"]))
 
-        # Output layer
+        # Output
         self.layers.append(nn.Linear(hidden_layers[-1], output_size))
         
-        # L2 regularization
+        # L2
         self.l2_lambda = self.mejora.get("L2", 0.0)
         
-        # For tracking training progress
         self.train_losses = []
         self.val_losses = []
 
@@ -388,7 +369,6 @@ class NNTorch(nn.Module):
                 init.zeros_(layer.bias)
 
     def forward(self, x):
-        # Pass input through all layers sequentially
         out = x
         for layer in self.layers:
             # print(layer)
@@ -400,35 +380,31 @@ class NNTorch(nn.Module):
                 X = torch.FloatTensor(X)
         if isinstance(y, np.ndarray):
             y = torch.LongTensor(y)
-        
-        # Create dataset and dataloader
-        # Create dataset and dataloader
+
         dataset = TensorDataset(X, y)
         use_minibatch = self.mejora.get("MiniBatch", False)
 
         if use_minibatch:
             dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         else:
-            dataloader = [(X, y)]  # Full-batch training
+            dataloader = [(X, y)]  # Entreno con todo el dataset
 
         
-        # Prepare validation data if provided
         if isinstance(X_val, np.ndarray):
             X_val = torch.FloatTensor(X_val)
         if isinstance(y_val, np.ndarray):
             y_val = torch.LongTensor(y_val)
         
-        # Loss function
+        # funcion de loss
         criterion = nn.CrossEntropyLoss()
         
-        # Optimizer with learning rate
+        # optimizados para learning rate
         if self.mejora.get("ADAM", False):
             beta1, beta2, epsilon = self.mejora["ADAM"]
             optimizer = optim.Adam(self.parameters(), lr=learning_rate, betas=(beta1, beta2), eps=epsilon, weight_decay=self.l2_lambda)
         else:
             optimizer = optim.SGD(self.parameters(), lr=learning_rate, weight_decay=self.l2_lambda)
         
-        # Learning rate scheduler
         scheduler = None
         if self.mejora.get("Rate scheduling exponencial", False):
             decay_rate = self.mejora["Rate scheduling exponencial"]
@@ -438,33 +414,31 @@ class NNTorch(nn.Module):
             lambda_fn = lambda epoch: max(1.0 - epoch/epochs, lr_min/learning_rate)
             scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_fn)
             
-        # Early stopping parameters
+        # Early stopping
         best_val_loss = float('inf')
         early_stopping_counter = 0
         early_stopping_patience = self.mejora.get("Early stopping", float('inf'))
         
-        # Training loop
+        # entrenamiento
         for epoch in range(epochs):
-            # Set to training mode
             self.train()
             total_loss = 0.0
             
             # Mini-batch training
             for inputs, labels in dataloader:
-                # Zero the parameter gradients
                 optimizer.zero_grad()
                 
                 # Forward pass
                 outputs = self(inputs)
                 loss = criterion(outputs, labels)
                 
-                # Backward pass and optimize
+                # Backward pass
                 loss.backward()
                 optimizer.step()
                 
                 total_loss += loss.item() * inputs.size(0)
             
-            # Calculate epoch loss
+            # epoch loss
             epoch_loss = total_loss / len(dataset)
             self.train_losses.append(epoch_loss)
             
@@ -473,7 +447,6 @@ class NNTorch(nn.Module):
             val_loss = self._evaluate(X_val, y_val, criterion)
             self.val_losses.append(val_loss)
             
-            # Early stopping check
             if self.mejora.get("Early stopping", False):
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
@@ -485,11 +458,9 @@ class NNTorch(nn.Module):
                             print(f"Early stopping triggered at epoch {epoch}")
                         break
             
-            # Update learning rate if scheduler is used
             if scheduler:
                 scheduler.step()
             
-            # Print progress
             if graph and epoch % 10 == 0:
                 print(f"Epoch {epoch}, Loss: {epoch_loss:.4f}", end="")
                 if val_loss:
@@ -497,7 +468,6 @@ class NNTorch(nn.Module):
                 else:
                     print()
         
-        # Plot losses if requested
         if graph:
             self._graph_losses()
     
@@ -509,7 +479,6 @@ class NNTorch(nn.Module):
         return loss.item()
     
     def _graph_losses(self):
-        """Plot training and validation losses"""
         plt.figure(figsize=(10, 6))
         plt.plot(self.train_losses, label='Training Loss', color='limegreen')
         if self.val_losses:
@@ -528,7 +497,6 @@ class NNTorch(nn.Module):
         
         self.eval()
         
-        # Get predictions
         with torch.no_grad():
             outputs = self(X)
             _, predicted = torch.max(outputs, 1)
@@ -536,14 +504,11 @@ class NNTorch(nn.Module):
         return predicted.numpy()
     
     def predict_proba(self, X):
-        # Convert to tensor if numpy array
         if isinstance(X, np.ndarray):
             X = torch.FloatTensor(X)
         
-        # Set model to evaluation mode
         self.eval()
         
-        # Get predictions
         with torch.no_grad():
             outputs = self(X)
             probabilities = torch.nn.functional.softmax(outputs, dim=1)
