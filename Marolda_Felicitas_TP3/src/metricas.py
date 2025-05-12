@@ -18,20 +18,15 @@ def confusion_matrix_multiclass(y_true, y_pred):
     return matriz
 
 def cross_entropy(y_true, y_pred):
-    """Compute cross entropy loss for multiclass classification"""
-    # Asegurarse de que y_true sea un vector de etiquetas, no one-hot
     y_true = np.asarray(y_true).astype(int)
-    # Clipping para evitar log(0)
     y_pred = np.clip(y_pred, 1e-15, 1 - 1e-15)
     return -np.mean(np.log(y_pred[np.arange(len(y_true)), y_true]))
 
-def get_metrics(y_pred, y_true):
-    """ print all metrics and show confusion matrix """
-    
+def get_metrics(y_pred, y_true):    
     y_pred_labels = np.argmax(y_pred, axis=1)
 
     acc = accuracy(y_pred_labels, y_true)
-    ce = cross_entropy(y_true, y_pred)  # aquí sí necesitas las probabilidades
+    ce = cross_entropy(y_true, y_pred)
     cm = confusion_matrix_multiclass(y_true, y_pred_labels)
 
     print(f'Accuracy: {acc:.4f}')
@@ -45,13 +40,11 @@ def get_metrics(y_pred, y_true):
     plt.show()
 
 
-def print_acc_ce(y_pred, y_true):
-    """ print accuracy and cross entropy """
-    
+def print_acc_ce(y_pred, y_true):    
     y_pred_labels = np.argmax(y_pred, axis=1)
 
     acc = accuracy(y_pred_labels, y_true)
-    ce = cross_entropy(y_true, y_pred)  # aquí sí necesitas las probabilidades
+    ce = cross_entropy(y_true, y_pred)
 
     print(f'Accuracy: {acc:.4f}')
     print(f'Cross Entropy: {ce:.4f}')
