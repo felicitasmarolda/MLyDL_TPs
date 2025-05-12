@@ -158,6 +158,8 @@ def cross_validation(X, y, params, k = 5):
 def graph(x,y1, y2, title, xlabel, names, scale = None, unite = False):
     import matplotlib.pyplot as plt
 
+    fs = 12
+
     plt.scatter(x, y1, label=names[0], color='cornflowerblue')
     plt.scatter(x, y2, label=names[1], color='indigo')
 
@@ -165,9 +167,9 @@ def graph(x,y1, y2, title, xlabel, names, scale = None, unite = False):
         plt.plot(x, y1, label=names[0], color='cornflowerblue')
         plt.plot(x, y2, label=names[1], color='indigo')
 
-    plt.xlabel(xlabel)
-    plt.ylabel('Accuracy / Cross Entropy')
-    plt.legend()
+    plt.xlabel(xlabel, fontsize=fs)
+    plt.ylabel('Accuracy / Cross Entropy', fontsize=fs)
+    plt.legend(fontsize=fs)
 
     if scale == 'log':
         plt.xscale('log')

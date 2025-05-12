@@ -258,13 +258,14 @@ class NeuralNetwork:
             self.graph_losses()
 
     def graph_losses(self):
+        fs = 16
         plt.plot(self.losses, label='Train Loss', color='limegreen')
         if self.losses_val:
             plt.plot(self.losses_val, label='Validation Loss', color='deeppink')
-        plt.xlabel('Epochs')
-        plt.ylabel('Cross entropy Loss')
-        plt.title('Loss vs Epochs')
-        plt.legend()
+        plt.xlabel('Epochs', fontsize=fs)
+        plt.ylabel('Cross entropy Loss', fontsize=fs)
+        plt.title('Loss vs Epochs', fontsize=fs)
+        plt.legend(fontsize=fs)
         plt.show()
 
 
