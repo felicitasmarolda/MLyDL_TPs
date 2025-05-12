@@ -22,7 +22,6 @@ class NeuralNetwork:
         self.gradients_biases = {}
         self.graph = graph
 
-        # Initialize weights and biases
         self.weights = []
         self.biases = []
         self.initialize_weights()
@@ -40,7 +39,6 @@ class NeuralNetwork:
             self.decay_rate = self.mejora["Rate scheduling exponencial"]
         
         if self.mejora.get("ADAM", False):
-            # Inicialización para Adam
             self.beta1 = self.mejora["ADAM"][0]
             self.beta2 = self.mejora["ADAM"][1]
             self.epsilon = self.mejora["ADAM"][2]
@@ -90,8 +88,6 @@ class NeuralNetwork:
     def cross_entropy_loss(self, y_pred, y=None):
         if y is None:
             y = self.y
-        # else:
-        #     y = np.eye(np.max(y) + 1)[y]
         if y.ndim == 1 or y.shape[1] == 1:
             y = np.eye(y_pred.shape[1])[y.reshape(-1).astype(int)]
 
@@ -109,23 +105,7 @@ class NeuralNetwork:
     def cross_entropy_loss_derivative(self, y_pred, y_true):
         return (y_pred - y_true)
 
-    # def forward_pass(self, a, training = True):
-    #     for i in range(self.layers - 1):
-    #         self.z[i] = np.dot(a, self.weights[i]) + self.biases[i]
-    #         if self.activation_functions[i] == 'ReLU':
-    #             a = self.ReLU(self.z[i])
-    #         elif self.activation_functions[i] == 'softmax':
-    #             a = self.softmax(self.z[i])
-            
-    #         if training and self.mejora.get("Dropout", False) and i < self.layers - 2:
-    #             rate = self.dropout_rates[i]
-    #             mask = (np.random.rand(*a.shape) > rate).astype(float)
-    #             a *= mask
-    #             a /= (1.0 - rate)
-    #             self.dropout_masks[i] = mask
 
-    #         self.a[i+1] = a
-    #     return a
     def forward_pass(self, a, training=True):
         dropout_masks = {}
         for i in range(self.layers - 1):
@@ -149,8 +129,7 @@ class NeuralNetwork:
 
             self.a[i + 1] = a
         
-        # si querés usar dropout_masks para el backward, devolvelos como segundo output
-        self.last_dropout_masks = dropout_masks  # <- opcional, solo si querés usarlos
+        self.last_dropout_masks = dropout_masks 
         return a
 
     
@@ -268,7 +247,6 @@ class NeuralNetwork:
         plt.legend(fontsize=fs)
         plt.show()
 
-
     # mejoras
     def gradient_descent_rate_scheduling_lineal(self, epoch):
         lr_init = self.learning_rate
@@ -288,63 +266,27 @@ class NeuralNetwork:
 
 
     def gradient_descent_adam(self, current_lr=None):
-        self.t += 1  # Incrementamos el contador de pasos
+        self.t += 1 
         
-        # Use the passed learning rate if provided, otherwise use the default
         lr = current_lr if current_lr is not None else self.learning_rate
         
         for i in range(self.layers - 1):
-            # --- Actualización para pesos ---
-            # 1. Calcular momentos (media y varianza)
             self.m_t_weights[i] = self.beta1 * self.m_t_weights[i] + (1 - self.beta1) * self.gradients_weights[i]
             self.v_t_weights[i] = self.beta2 * self.v_t_weights[i] + (1 - self.beta2) * (self.gradients_weights[i]**2)
             
-            # 2. Corrección de bias (para contrarrestar la inicialización en 0)
             m_hat_w = self.m_t_weights[i] / (1 - self.beta1**self.t)
             v_hat_w = self.v_t_weights[i] / (1 - self.beta2**self.t)
             
-            # 3. Actualización de pesos con tasa adaptativa - NOW USING lr INSTEAD OF self.learning_rate
             self.weights[i] -= lr * m_hat_w / (np.sqrt(v_hat_w) + self.epsilon)
             
-            # --- Actualización para biases ---
-            # 1. Calcular momentos (media y varianza)
             self.m_t_biases[i] = self.beta1 * self.m_t_biases[i] + (1 - self.beta1) * self.gradients_biases[i]
             self.v_t_biases[i] = self.beta2 * self.v_t_biases[i] + (1 - self.beta2) * (self.gradients_biases[i]**2)
             
-            # 2. Corrección de bias
             m_hat_b = self.m_t_biases[i] / (1 - self.beta1**self.t)
             v_hat_b = self.v_t_biases[i] / (1 - self.beta2**self.t)
             
-            # 3. Actualización de biases con tasa adaptativa - NOW USING lr INSTEAD OF self.learning_rate
             self.biases[i] -= lr * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
-    # def gradient_descent_adam(self):
-    #     self.t += 1  # Incrementamos el contador de pasos
-        
-    #     for i in range(self.layers - 1):
-    #         # --- Actualización para pesos ---
-    #         # 1. Calcular momentos (media y varianza)
-    #         self.m_t_weights[i] = self.beta1 * self.m_t_weights[i] + (1 - self.beta1) * self.gradients_weights[i]
-    #         self.v_t_weights[i] = self.beta2 * self.v_t_weights[i] + (1 - self.beta2) * (self.gradients_weights[i]**2)
-            
-    #         # 2. Corrección de bias (para contrarrestar la inicialización en 0)
-    #         m_hat_w = self.m_t_weights[i] / (1 - self.beta1**self.t)
-    #         v_hat_w = self.v_t_weights[i] / (1 - self.beta2**self.t)
-            
-    #         # 3. Actualización de pesos con tasa adaptativa
-    #         self.weights[i] -= self.learning_rate * m_hat_w / (np.sqrt(v_hat_w) + self.epsilon)
-            
-    #         # --- Actualización para biases ---
-    #         # 1. Calcular momentos (media y varianza)
-    #         self.m_t_biases[i] = self.beta1 * self.m_t_biases[i] + (1 - self.beta1) * self.gradients_biases[i]
-    #         self.v_t_biases[i] = self.beta2 * self.v_t_biases[i] + (1 - self.beta2) * (self.gradients_biases[i]**2)
-            
-    #         # 2. Corrección de bias
-    #         m_hat_b = self.m_t_biases[i] / (1 - self.beta1**self.t)
-    #         v_hat_b = self.v_t_biases[i] / (1 - self.beta2**self.t)
-            
-    #         # 3. Actualización de biases con tasa adaptativa
-    #         self.biases[i] -= self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
-
+    
     def fit_mini_batch(self, X_val, y_val, graph = True) -> None:
         batch_size = self.mejora.get("Mini batch stochastic gradient descent")
         for epoch in range(self.epochs):
@@ -394,10 +336,6 @@ class NeuralNetwork:
         if self.graph:
             self.graph_losses()
 
-    # def batch_norm_forward(self, z, layer_index, training=True):
-        
-    
-    # def batch_norm_backward(self, dz, z, layer_index):
         
 import torch
 import torch
