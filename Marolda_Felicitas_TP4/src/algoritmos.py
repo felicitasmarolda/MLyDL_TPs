@@ -22,3 +22,86 @@ def k_means(X, k, max_iters=1000, threshold = 1e-8):
         centroids = new_centroids
 
     return centroids, labels
+
+def GMM(X, k, centroids_init=None, max_iters=300, threshold=1e-4):
+    n_samples, n_features = X.shape
+    
+    # Inicializamos
+    if centroids_init is None:
+        # inicializamos random
+        idxs = np.random.choice(n_samples, k, replace=False)
+        medias = X[idxs]
+    else:
+        medias = centroids_init
+    
+    # covarianzas como matriz identidad
+    covariances = np.array([np.cov(X.T) + np.eye(n_features) * 1e-6 for _ in range(k)])
+    
+    # pesos uniformes
+    weights = np.ones(k) / k
+    
+    # inicializamos responsabilidades
+    responsibilities = np.zeros((n_samples, k))
+    
+    log_likelihood_history = []
+    medias_history = []
+    covariances_history = []
+    weights_history = []
+
+
+    prev_log_likelihood = -np.inf
+    
+    for iteration in range(max_iters):
+        # print("iteration", iteration)
+        # E-step: calcular responsabilidades
+        for n in range(n_samples):
+            for j in range(k):
+                responsibilities[n, j] = weights[j] * multivariate_gaussian_pdf(X[n], medias[j], covariances[j])
+            responsibilities[n] /= np.sum(responsibilities[n])
+        # print("responsibilities", responsibilities)
+        
+        # M-step: actualizar parámetros
+        for j in range(k):
+            N_j = np.sum(responsibilities[:, j])
+            medias[j] = np.sum(responsibilities[:, j][:, np.newaxis] * X, axis=0) / N_j
+            covariances[j] = np.dot((responsibilities[:, j][:, np.newaxis] * (X - medias[j])).T, (X - medias[j])) / N_j
+            covariances[j] += np.eye(n_features) * 1e-6  # Regularización para evitar singularidad
+            weights[j] = N_j / n_samples   
+        
+        # log likelihood
+        log_likelihood = 0
+        for n in range(n_samples):
+            log_likelihood += np.log(np.sum([weights[j] * multivariate_gaussian_pdf(X[n], medias[j], covariances[j]) for j in range(k)]))
+
+        log_likelihood_history.append(log_likelihood)
+        medias_history.append(medias.copy())
+        covariances_history.append(covariances.copy())
+        weights_history.append(weights.copy())
+
+
+        # si converge..
+        if np.abs(log_likelihood - prev_log_likelihood) < threshold:
+            break
+        # usamos allclose para convergencia
+        if iteration > 2 and np.allclose(medias, medias_history[-1], rtol = threshold, atol=threshold) and np.allclose(covariances, covariances_history[-1], rtol = threshold, atol=threshold) and np.allclose(weights, weights_history[-1], rtol = threshold, atol=threshold):
+            break
+
+        prev_log_likelihood = log_likelihood
+    
+    # labels
+    # print("responsibilities", responsibilities)
+    labels = np.argmax(responsibilities, axis=1)
+
+    return medias, covariances, weights, responsibilities, log_likelihood_history, labels
+
+
+def multivariate_gaussian_pdf(x, media, cov):
+    d = len(x)
+    cov_det = np.linalg.det(cov)
+    cov_inv = np.linalg.inv(cov)
+    norm_const = 1 / ((2 * np.pi) ** (d / 2) * np.sqrt(cov_det))
+    x_diff = x - media
+    exponent = -0.5 * np.dot(x_diff, np.dot(cov_inv, x_diff))
+    output = norm_const * np.exp(exponent)
+    # print("output", output)
+    return output

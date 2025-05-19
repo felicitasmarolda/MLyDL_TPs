@@ -11,6 +11,7 @@ def graph(X, y, x_label, y_label, path = True, fs = 14):
     plt.xlabel(x_label, fontsize=fs)
     plt.ylabel(y_label, fontsize=fs)
     plt.grid()
+    plt.xticks(np.arange(min(X), max(X)+2, 4))
     plt.show()
 
 def get_distances_sum(X, labels, centroids):
