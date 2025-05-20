@@ -106,52 +106,84 @@ def multivariate_gaussian_pdf(x, media, cov):
     # print("output", output)
     return output
 
-def DBSCAN(X, eps, k):
-    # k = min samples
-    n_samples = X.shape[0]
+# def DBSCAN(X, eps, k):
+#     # k = min samples
+#     n_samples = X.shape[0]
     
-    # Initialize labels to unvisited (-2)
-    labels = np.full(n_samples, -2)
+#     # Initialize labels to unvisited (-2)
+#     labels = np.full(n_samples, -2)
     
-    # Find neighbors for each point
-    neighbors = []
-    for i in range(n_samples):
-        dists = np.linalg.norm(X - X[i], axis=1)
-        neighbors.append(np.where(dists <= eps)[0])
+#     # Find neighbors for each point
+#     neighbors = []
+#     for i in range(n_samples):
+#         dists = np.linalg.norm(X - X[i], axis=1)
+#         neighbors.append(np.where(dists <= eps)[0])
 
-    # identify core points
-    to_join_points = np.array([i for i, neighbor_indices in enumerate(neighbors) if len(neighbor_indices) >= k])
+#     # identify core points
+#     to_join_points = np.array([i for i, neighbor_indices in enumerate(neighbors) if len(neighbor_indices) >= k])
     
-    # definimos ruido como los puntos que no tienen suficientes vecinos
-    for i in range(n_samples):
-        if i not in to_join_points:
-            labels[i] = -1
+#     # definimos ruido como los puntos que no tienen suficientes vecinos
+#     for i in range(n_samples):
+#         if i not in to_join_points:
+#             labels[i] = -1
     
-    # clusterizamos
+#     # clusterizamos
+#     cluster_id = 0
+#     for i in range(n_samples):
+#         # Skip if already visited or not a core point
+#         if labels[i] != -2 or i not in to_join_points:
+#             continue
+        
+#         # Start a new cluster
+#         labels[i] = cluster_id
+        
+#         # Process neighbors (BFS approach)
+#         queue = list(neighbors[i])
+#         while queue:
+#             neighbor = queue.pop(0)
+            
+#             # If neighbor is unvisited or noise
+#             if labels[neighbor] < 0:  # Unvisited (-2) or noise (-1)
+#                 # Add to cluster
+#                 labels[neighbor] = cluster_id
+                
+#                 # If it's a core point, add its neighbors to the queue
+#                 if neighbor in to_join_points:
+#                     queue.extend([n for n in neighbors[neighbor] if labels[n] < 0])
+        
+#         # Move to next cluster
+#         cluster_id += 1
+    
+#     return labels, to_join_points
+
+def DBSCAN(X, eps, k):
+    n_samples = X.shape[0]
+    labels = np.full(n_samples, -2)  # -2: unvisited, -1: noise, >=0: cluster ID
+    neighbors = [np.where(np.linalg.norm(X - X[i], axis=1) <= eps)[0] for i in range(n_samples)]
+    to_join_points = np.array([i for i, neigh in enumerate(neighbors) if len(neigh) >= k])
+    
+    # Label noise points
+    labels[np.isin(np.arange(n_samples), to_join_points, invert=True)] = -1
+
     cluster_id = 0
     for i in range(n_samples):
-        # Skip if already visited or not a core point
         if labels[i] != -2 or i not in to_join_points:
             continue
         
-        # Start a new cluster
+        # Start BFS for cluster expansion
+        queue = [i]
         labels[i] = cluster_id
         
-        # Process neighbors (BFS approach)
-        queue = list(neighbors[i])
         while queue:
-            neighbor = queue.pop(0)
+            current = queue.pop(0)
             
-            # If neighbor is unvisited or noise
-            if labels[neighbor] < 0:  # Unvisited (-2) or noise (-1)
-                # Add to cluster
-                labels[neighbor] = cluster_id
-                
-                # If it's a core point, add its neighbors to the queue
-                if neighbor in to_join_points:
-                    queue.extend([n for n in neighbors[neighbor] if labels[n] < 0])
+            # Process only unvisited/noise neighbors (skip already clustered)
+            for neighbor in neighbors[current]:
+                if labels[neighbor] == -2 or labels[neighbor] == -1:
+                    labels[neighbor] = cluster_id
+                    if neighbor in to_join_points:
+                        queue.append(neighbor)
         
-        # Move to next cluster
         cluster_id += 1
     
     return labels, to_join_points

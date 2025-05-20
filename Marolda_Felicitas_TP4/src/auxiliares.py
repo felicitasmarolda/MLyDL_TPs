@@ -60,7 +60,7 @@ def get_centroids(X, labels):
         centroids[i] = np.mean(X[labels == label], axis=0)
     return centroids
 
-def plot_dbscan_clusters(X, labels, core_samples=None, fs = 14):
+def plot_dbscan_clusters(X, labels, fs = 14):
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
     
     # Create plot
@@ -77,3 +77,14 @@ def plot_dbscan_clusters(X, labels, core_samples=None, fs = 14):
     ax.set_ylim(0, 1)
     
     plt.grid()
+
+def sub_plot(X, axs, axs_i, axs_j, labels, params, fs = 14):
+    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+    # Create plot
+    axs[axs_i, axs_j].scatter(X[:, 0], X[:, 1], c=labels, cmap='tab20', s=10, alpha=0.6)
+    axs[axs_i, axs_j].set_title(f'DBSCAN: {n_clusters} clusters found\n eps: {params[0]}, min_samples: {params[1]}', fontsize=fs)
+    axs[axs_i, axs_j].set_xlim(0, 1)
+    axs[axs_i, axs_j].set_ylim(0, 1)
+    # axs[axs_i, axs_j].set_xlabel(f'eps = {params[0]}', fontsize=fs)
+    # axs[axs_i, axs_j].set_ylabel(f'min_samples = {params[1]}', fontsize=fs)
+    axs[axs_i, axs_j].grid()
