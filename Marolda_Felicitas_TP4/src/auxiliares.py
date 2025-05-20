@@ -78,13 +78,45 @@ def plot_dbscan_clusters(X, labels, fs = 14):
     
     plt.grid()
 
-def sub_plot(X, axs, axs_i, axs_j, labels, params, fs = 14):
+# def sub_plot(X, axs, axs_i, axs_j, labels, params, fs = 14):
+#     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+#     # Create plot
+#     axs[axs_i, axs_j].scatter(X[:, 0], X[:, 1], c=labels, cmap='tab20', s=10, alpha=0.6)
+#     axs[axs_i, axs_j].set_title(f'DBSCAN: {n_clusters} clusters found\n eps: {params[0]}, min_samples: {params[1]}', fontsize=fs)
+#     axs[axs_i, axs_j].set_xlim(0, 1)
+#     axs[axs_i, axs_j].set_ylim(0, 1)
+#     # axs[axs_i, axs_j].set_xlabel(f'eps = {params[0]}', fontsize=fs)
+#     # axs[axs_i, axs_j].set_ylabel(f'min_samples = {params[1]}', fontsize=fs)
+#     axs[axs_i, axs_j].grid()
+
+def sub_plot(X, axs, axs_i, axs_j, labels, params, fs=14):
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+    
+    # Create color array - convert all to RGBA format
+    cmap = plt.cm.tab20
+    colors = []
+    for label in labels:
+        if label == -1:  # Noise points
+            colors.append(np.array([0, 0, 0, 1]))  # Black in RGBA
+        else:
+            colors.append(cmap(label % 20))  # Cluster points
+    
+    # Convert to numpy array
+    colors = np.array(colors)
+    
     # Create plot
-    axs[axs_i, axs_j].scatter(X[:, 0], X[:, 1], c=labels, cmap='tab20', s=10, alpha=0.6)
-    axs[axs_i, axs_j].set_title(f'DBSCAN: {n_clusters} clusters found\n eps: {params[0]}, min_samples: {params[1]}', fontsize=fs)
+    axs[axs_i, axs_j].scatter(
+        X[:, 0], X[:, 1], 
+        c=colors,
+        s=10, 
+        alpha=0.4
+    )
+    
+    axs[axs_i, axs_j].set_title(
+        f'DBSCAN: {n_clusters} clusters found\neps: {params[0]}, min_samples: {params[1]}', 
+        fontsize=fs
+    )
     axs[axs_i, axs_j].set_xlim(0, 1)
     axs[axs_i, axs_j].set_ylim(0, 1)
-    # axs[axs_i, axs_j].set_xlabel(f'eps = {params[0]}', fontsize=fs)
-    # axs[axs_i, axs_j].set_ylabel(f'min_samples = {params[1]}', fontsize=fs)
     axs[axs_i, axs_j].grid()
+    
