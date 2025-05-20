@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def graph(X, y, x_label, y_label, path = True, fs = 14):
+def graph(X, y, x_label, y_label, step = 4, path = True, fs = 14):
     plt.figure()
     #font size
     plt.scatter(X, y, c=y, s=50, cmap='viridis')
@@ -11,7 +11,7 @@ def graph(X, y, x_label, y_label, path = True, fs = 14):
     plt.xlabel(x_label, fontsize=fs)
     plt.ylabel(y_label, fontsize=fs)
     plt.grid()
-    plt.xticks(np.arange(min(X), max(X)+2, 4))
+    plt.xticks(np.arange(min(X), max(X)+2, step))
     plt.show()
 
 # def get_distances_sum(X, labels, centroids):
