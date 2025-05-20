@@ -187,3 +187,89 @@ def DBSCAN(X, eps, k):
         cluster_id += 1
     
     return labels, to_join_points
+
+# REDUCCIÓN DE DIMENSIONALIDAD
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+class PCA:
+    def __init__(self, n_components):
+        """
+        Inicializa el modelo PCA con el número de componentes principales deseados.
+        
+        Parámetros:
+        n_components (int): Número de componentes principales a retener
+        """
+        self.n_components = n_components
+        self.components = None
+        self.mean = None
+        self.explained_variance_ratio = None
+    
+    def fit(self, X):
+        """
+        Aprende los componentes principales del conjunto de datos X.
+        
+        Parámetros:
+        X (ndarray): Matriz de datos de forma (n_samples, n_features)
+        """
+        # 1. Centrar los datos (restar la media)
+        self.mean = np.mean(X, axis=0)
+        X_centered = X - self.mean
+        
+        # 2. Calcular la matriz de covarianza
+        cov_matrix = np.cov(X_centered, rowvar=False)
+        
+        # 3. Descomposición en valores propios
+        eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
+        
+        # 4. Ordenar los vectores propios por valores propios descendentes
+        idx = np.argsort(eigenvalues)[::-1]
+        eigenvalues = eigenvalues[idx]
+        eigenvectors = eigenvectors[:, idx]
+        
+        # 5. Seleccionar los primeros n_components
+        self.components = eigenvectors[:, :self.n_components]
+        
+        # Calcular la varianza explicada
+        total_variance = np.sum(eigenvalues)
+        self.explained_variance_ratio = eigenvalues[:self.n_components] / total_variance
+    
+    def transform(self, X):
+        """
+        Transforma los datos al espacio de componentes principales.
+        
+        Parámetros:
+        X (ndarray): Matriz de datos de forma (n_samples, n_features)
+        
+        Retorna:
+        ndarray: Datos transformados de forma (n_samples, n_components)
+        """
+        X_centered = X - self.mean
+        return np.dot(X_centered, self.components)
+    
+    def inverse_transform(self, X_transformed):
+        """
+        Reconstruye los datos originales desde el espacio de componentes principales.
+        
+        Parámetros:
+        X_transformed (ndarray): Datos transformados de forma (n_samples, n_components)
+        
+        Retorna:
+        ndarray: Datos reconstruidos de forma (n_samples, n_features)
+        """
+        return np.dot(X_transformed, self.components.T) + self.mean
+    
+    def reconstruction_error(self, X):
+        """
+        Calcula el error cuadrático medio de reconstrucción para el conjunto de datos X.
+        
+        Parámetros:
+        X (ndarray): Matriz de datos de forma (n_samples, n_features)
+        
+        Retorna:
+        float: Error cuadrático medio de reconstrucción
+        """
+        X_transformed = self.transform(X)
+        X_reconstructed = self.inverse_transform(X_transformed)
+        return np.mean((X - X_reconstructed) ** 2)
