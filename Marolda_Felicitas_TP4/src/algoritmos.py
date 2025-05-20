@@ -105,3 +105,53 @@ def multivariate_gaussian_pdf(x, media, cov):
     output = norm_const * np.exp(exponent)
     # print("output", output)
     return output
+
+def DBSCAN(X, eps, k):
+    # k = min samples
+    n_samples = X.shape[0]
+    
+    # Initialize labels to unvisited (-2)
+    labels = np.full(n_samples, -2)
+    
+    # Find neighbors for each point
+    neighbors = []
+    for i in range(n_samples):
+        dists = np.linalg.norm(X - X[i], axis=1)
+        neighbors.append(np.where(dists <= eps)[0])
+
+    # identify core points
+    to_join_points = np.array([i for i, neighbor_indices in enumerate(neighbors) if len(neighbor_indices) >= k])
+    
+    # definimos ruido como los puntos que no tienen suficientes vecinos
+    for i in range(n_samples):
+        if i not in to_join_points:
+            labels[i] = -1
+    
+    # clusterizamos
+    cluster_id = 0
+    for i in range(n_samples):
+        # Skip if already visited or not a core point
+        if labels[i] != -2 or i not in to_join_points:
+            continue
+        
+        # Start a new cluster
+        labels[i] = cluster_id
+        
+        # Process neighbors (BFS approach)
+        queue = list(neighbors[i])
+        while queue:
+            neighbor = queue.pop(0)
+            
+            # If neighbor is unvisited or noise
+            if labels[neighbor] < 0:  # Unvisited (-2) or noise (-1)
+                # Add to cluster
+                labels[neighbor] = cluster_id
+                
+                # If it's a core point, add its neighbors to the queue
+                if neighbor in to_join_points:
+                    queue.extend([n for n in neighbors[neighbor] if labels[n] < 0])
+        
+        # Move to next cluster
+        cluster_id += 1
+    
+    return labels, to_join_points
