@@ -106,63 +106,13 @@ def multivariate_gaussian_pdf(x, media, cov):
     # print("output", output)
     return output
 
-# def DBSCAN(X, eps, k):
-#     # k = min samples
-#     n_samples = X.shape[0]
-    
-#     # Initialize labels to unvisited (-2)
-#     labels = np.full(n_samples, -2)
-    
-#     # Find neighbors for each point
-#     neighbors = []
-#     for i in range(n_samples):
-#         dists = np.linalg.norm(X - X[i], axis=1)
-#         neighbors.append(np.where(dists <= eps)[0])
-
-#     # identify core points
-#     to_join_points = np.array([i for i, neighbor_indices in enumerate(neighbors) if len(neighbor_indices) >= k])
-    
-#     # definimos ruido como los puntos que no tienen suficientes vecinos
-#     for i in range(n_samples):
-#         if i not in to_join_points:
-#             labels[i] = -1
-    
-#     # clusterizamos
-#     cluster_id = 0
-#     for i in range(n_samples):
-#         # Skip if already visited or not a core point
-#         if labels[i] != -2 or i not in to_join_points:
-#             continue
-        
-#         # Start a new cluster
-#         labels[i] = cluster_id
-        
-#         # Process neighbors (BFS approach)
-#         queue = list(neighbors[i])
-#         while queue:
-#             neighbor = queue.pop(0)
-            
-#             # If neighbor is unvisited or noise
-#             if labels[neighbor] < 0:  # Unvisited (-2) or noise (-1)
-#                 # Add to cluster
-#                 labels[neighbor] = cluster_id
-                
-#                 # If it's a core point, add its neighbors to the queue
-#                 if neighbor in to_join_points:
-#                     queue.extend([n for n in neighbors[neighbor] if labels[n] < 0])
-        
-#         # Move to next cluster
-#         cluster_id += 1
-    
-#     return labels, to_join_points
-
 def DBSCAN(X, eps, k):
     n_samples = X.shape[0]
-    labels = np.full(n_samples, -2)  # -2: unvisited, -1: noise, >=0: cluster ID
+    labels = np.full(n_samples, -2)  # -2-> no visitado, -1-> ruido, >=0: a que cluster pertenece
     neighbors = [np.where(np.linalg.norm(X - X[i], axis=1) <= eps)[0] for i in range(n_samples)]
     to_join_points = np.array([i for i, neigh in enumerate(neighbors) if len(neigh) >= k])
     
-    # Label noise points
+    # puntos que son ruido
     labels[np.isin(np.arange(n_samples), to_join_points, invert=True)] = -1
 
     cluster_id = 0
@@ -170,14 +120,12 @@ def DBSCAN(X, eps, k):
         if labels[i] != -2 or i not in to_join_points:
             continue
         
-        # Start BFS for cluster expansion
         queue = [i]
         labels[i] = cluster_id
         
         while queue:
             current = queue.pop(0)
             
-            # Process only unvisited/noise neighbors (skip already clustered)
             for neighbor in neighbors[current]:
                 if labels[neighbor] == -2 or labels[neighbor] == -1:
                     labels[neighbor] = cluster_id
@@ -195,81 +143,42 @@ import matplotlib.pyplot as plt
 
 class PCA:
     def __init__(self, n_components):
-        """
-        Inicializa el modelo PCA con el número de componentes principales deseados.
-        
-        Parámetros:
-        n_components (int): Número de componentes principales a retener
-        """
         self.n_components = n_components
         self.components = None
         self.mean = None
         self.explained_variance_ratio = None
     
     def fit(self, X):
-        """
-        Aprende los componentes principales del conjunto de datos X.
-        
-        Parámetros:
-        X (ndarray): Matriz de datos de forma (n_samples, n_features)
-        """
-        # 1. Centrar los datos (restar la media)
+        # Centrar los datos (restar la media)
         self.mean = np.mean(X, axis=0)
         X_centered = X - self.mean
         
-        # 2. Calcular la matriz de covarianza
+        # Matriz de covarianza
         cov_matrix = np.cov(X_centered, rowvar=False)
         
-        # 3. Descomposición en valores propios
+        # Descomposición
         eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
         
-        # 4. Ordenar los vectores propios por valores propios descendentes
+        # Ordenar AVAs y AVEs
         idx = np.argsort(eigenvalues)[::-1]
         eigenvalues = eigenvalues[idx]
         eigenvectors = eigenvectors[:, idx]
         
-        # 5. Seleccionar los primeros n_components
+        # Primeros n componentes
         self.components = eigenvectors[:, :self.n_components]
         
-        # Calcular la varianza explicada
+        # Varianza
         total_variance = np.sum(eigenvalues)
         self.explained_variance_ratio = eigenvalues[:self.n_components] / total_variance
     
     def transform(self, X):
-        """
-        Transforma los datos al espacio de componentes principales.
-        
-        Parámetros:
-        X (ndarray): Matriz de datos de forma (n_samples, n_features)
-        
-        Retorna:
-        ndarray: Datos transformados de forma (n_samples, n_components)
-        """
         X_centered = X - self.mean
         return np.dot(X_centered, self.components)
     
     def inverse_transform(self, X_transformed):
-        """
-        Reconstruye los datos originales desde el espacio de componentes principales.
-        
-        Parámetros:
-        X_transformed (ndarray): Datos transformados de forma (n_samples, n_components)
-        
-        Retorna:
-        ndarray: Datos reconstruidos de forma (n_samples, n_features)
-        """
         return np.dot(X_transformed, self.components.T) + self.mean
     
     def reconstruction_error(self, X):
-        """
-        Calcula el error cuadrático medio de reconstrucción para el conjunto de datos X.
-        
-        Parámetros:
-        X (ndarray): Matriz de datos de forma (n_samples, n_features)
-        
-        Retorna:
-        float: Error cuadrático medio de reconstrucción
-        """
         X_transformed = self.transform(X)
         X_reconstructed = self.inverse_transform(X_transformed)
         return np.mean((X - X_reconstructed) ** 2)

@@ -119,4 +119,33 @@ def sub_plot(X, axs, axs_i, axs_j, labels, params, fs=14):
     axs[axs_i, axs_j].set_xlim(0, 1)
     axs[axs_i, axs_j].set_ylim(0, 1)
     axs[axs_i, axs_j].grid()
+
+def get_avas(X):
+    # devuelve los valors singulares en orden descendente
+    cov = np.cov(X, rowvar=False)
+    eigenvalues, _ = np.linalg.eigh(cov)
+    eigenvalues = np.sort(eigenvalues)[::-1]
+    return eigenvalues
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def graficar_valores_singulares(X, components=100):
+    fs = 14
+    # Descomposición en valores singulares
+    U, S, VT = np.linalg.svd(X, full_matrices=False)
     
+    # Tomar los primeros 100 valores singulares
+    S_comp = S[:components]
+
+    # Graficar
+    plt.figure(figsize=(10, 5))
+    # Create a gradient of colors using a colormap
+    cmap = plt.get_cmap('viridis')
+    colors = [cmap(i / len(S_comp)) for i in range(len(S_comp))]
+    plt.bar(range(1, len(S_comp) + 1), S_comp, color=colors, alpha=0.7)
+    plt.ylabel('Valor singular', fontsize=fs)
+    plt.title('Primeros 100 valores singulares de X', fontsize=fs)
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
