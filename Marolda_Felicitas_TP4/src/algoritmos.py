@@ -23,7 +23,7 @@ def k_means(X, k, max_iters=1000, threshold = 1e-8):
 
     return centroids, labels
 
-def GMM(X, k, centroids_init=None, max_iters=300, threshold=1e-4):
+def GMM(X, k, centroids_init=None, labels_init=None, max_iters=300, threshold=1e-4):
     n_samples, n_features = X.shape
     
     # Inicializamos
@@ -33,9 +33,15 @@ def GMM(X, k, centroids_init=None, max_iters=300, threshold=1e-4):
         medias = X[idxs]
     else:
         medias = centroids_init
-    
-    # covarianzas como matriz identidad
-    covariances = np.array([np.cov(X.T) + np.eye(n_features) * 1e-6 for _ in range(k)])
+
+    if labels_init is None:
+        # inicializamos labels random
+        labels = np.random.randint(0, k, n_samples)
+    else:
+        labels = labels_init
+
+    covariances = np.array([np.cov(X[labels == k].T) + 1e-6 * np.eye(n_features)for k in range(k)])
+    # covariances = np.array([np.cov(X.T) + np.eye(n_features) * 1e-6 for _ in range(k)])
     
     # pesos uniformes
     weights = np.ones(k) / k

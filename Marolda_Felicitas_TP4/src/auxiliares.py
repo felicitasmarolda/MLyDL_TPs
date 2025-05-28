@@ -149,3 +149,13 @@ def graficar_valores_singulares(X, components=100):
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.tight_layout()
     plt.show()
+
+def matriz_de_similaridad(X):
+    n_samples = X.shape[0]
+    similarity_matrix = np.zeros((n_samples, n_samples))
+    
+    for i in range(n_samples):
+        for j in range(n_samples):
+            similarity_matrix[i, j] = np.linalg.norm(X[i] - X[j])
+    
+    return similarity_matrix
