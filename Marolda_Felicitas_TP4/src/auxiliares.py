@@ -1,16 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def graph(X, y, x_label, y_label, step = 4, path = True, fs = 14):
+def graph(X, y, x_label, y_label, step = 4, color = 'viridis', path = True, fs = 14):
     plt.figure()
     #font size
-    plt.scatter(X, y, c=y, s=50, cmap='viridis')
+    plt.scatter(X, y, c=y, s=50, cmap=color)
     if path:
         # conectamos los puntos
-        plt.plot(X, y, color='black', alpha=0.5)
+        plt.plot(X, y, color='tab:blue', alpha=0.5)
     plt.xlabel(x_label, fontsize=fs)
     plt.ylabel(y_label, fontsize=fs)
-    plt.grid()
+    plt.grid(True, alpha=0.5)
     plt.xticks(np.arange(min(X), max(X)+2, step))
     plt.show()
 
@@ -143,9 +143,9 @@ def graficar_valores_singulares(X, components=100):
     # Create a gradient of colors using a colormap
     cmap = plt.get_cmap('viridis')
     colors = [cmap(i / len(S_comp)) for i in range(len(S_comp))]
-    plt.bar(range(1, len(S_comp) + 1), S_comp, color=colors, alpha=0.7)
+    plt.bar(range(1, len(S_comp) + 1), S_comp, color=colors)
     plt.ylabel('Valor singular', fontsize=fs)
-    plt.title('Primeros 100 valores singulares de X', fontsize=fs)
+    # plt.title('Primeros 100 valores singulares de X', fontsize=fs)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.tight_layout()
     plt.show()
