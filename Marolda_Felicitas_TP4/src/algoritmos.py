@@ -4,19 +4,15 @@ import matplotlib.pyplot as plt
 def k_means(X, k, max_iters=1000, threshold = 1e-8):
     n_samples, n_features = X.shape
 
-    # inicializamos los centroides random
     idxs = np.random.choice(n_samples, k, replace=False)
     centroids = X[idxs]
 
     for _ in range(max_iters):
-        # Asignamos cluster
         distances = np.linalg.norm(X[:, np.newaxis] - centroids, axis=2)
         labels = np.argmin(distances, axis=1)
 
-        # nuevos centorides
         new_centroids = np.array([X[labels == i].mean(axis=0) if np.any(labels == i) else centroids[i] for i in range(k)])
 
-        # si converge..
         if np.linalg.norm(new_centroids - centroids) <= threshold:
             break
         centroids = new_centroids
@@ -26,9 +22,7 @@ def k_means(X, k, max_iters=1000, threshold = 1e-8):
 def GMM(X, k, centroids_init=None, labels_init=None, max_iters=300, threshold=1e-4):
     n_samples, n_features = X.shape
     
-    # Inicializamos
     if centroids_init is None:
-        # inicializamos random
         idxs = np.random.choice(n_samples, k, replace=False)
         medias = X[idxs]
     else:
@@ -41,7 +35,6 @@ def GMM(X, k, centroids_init=None, labels_init=None, max_iters=300, threshold=1e
         labels = labels_init
 
     covariances = np.array([np.cov(X[labels == k].T) + 1e-6 * np.eye(n_features)for k in range(k)])
-    # covariances = np.array([np.cov(X.T) + np.eye(n_features) * 1e-6 for _ in range(k)])
     
     # pesos uniformes
     weights = np.ones(k) / k
@@ -71,7 +64,7 @@ def GMM(X, k, centroids_init=None, labels_init=None, max_iters=300, threshold=1e
             N_j = np.sum(responsibilities[:, j])
             medias[j] = np.sum(responsibilities[:, j][:, np.newaxis] * X, axis=0) / N_j
             covariances[j] = np.dot((responsibilities[:, j][:, np.newaxis] * (X - medias[j])).T, (X - medias[j])) / N_j
-            covariances[j] += np.eye(n_features) * 1e-6  # Regularización para evitar singularidad
+            covariances[j] += np.eye(n_features) * 1e-6
             weights[j] = N_j / n_samples   
         
         # log likelihood
@@ -88,7 +81,6 @@ def GMM(X, k, centroids_init=None, labels_init=None, max_iters=300, threshold=1e
         # si converge..
         if np.abs(log_likelihood - prev_log_likelihood) < threshold:
             break
-        # usamos allclose para convergencia
         if iteration > 2 and np.allclose(medias, medias_history[-1], rtol = threshold, atol=threshold) and np.allclose(covariances, covariances_history[-1], rtol = threshold, atol=threshold) and np.allclose(weights, weights_history[-1], rtol = threshold, atol=threshold):
             break
 
@@ -114,11 +106,10 @@ def multivariate_gaussian_pdf(x, media, cov):
 
 def DBSCAN(X, eps, k):
     n_samples = X.shape[0]
-    labels = np.full(n_samples, -2)  # -2-> no visitado, -1-> ruido, >=0: a que cluster pertenece
+    labels = np.full(n_samples, -2) 
     neighbors = [np.where(np.linalg.norm(X - X[i], axis=1) <= eps)[0] for i in range(n_samples)]
     to_join_points = np.array([i for i, neigh in enumerate(neighbors) if len(neigh) >= k])
     
-    # puntos que son ruido
     labels[np.isin(np.arange(n_samples), to_join_points, invert=True)] = -1
 
     cluster_id = 0
